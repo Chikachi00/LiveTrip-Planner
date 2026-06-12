@@ -14,7 +14,7 @@ export const buildTimeline = (plan: TripPlan): TimelineItem[] => [
   {
     label: "出发",
     time: plan.departureTime,
-    description: `从 ${plan.departureCity || "出发地"} 前往 ${plan.city}，提前确认交通票据和证件。`,
+    description: `从 ${plan.departureCity || "出发地"} 前往 ${plan.city || "演出城市"}，提前确认交通票据和证件。`,
   },
   {
     label: "到达演出城市",

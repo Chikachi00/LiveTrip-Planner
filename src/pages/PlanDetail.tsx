@@ -11,7 +11,9 @@ import { BudgetBreakdown } from "../components/BudgetBreakdown";
 import { MarkdownExportPanel } from "../components/MarkdownExportPanel";
 import { ScoreBreakdown } from "../components/ScoreBreakdown";
 import { ScoreRing } from "../components/ScoreRing";
+import { SmartAdvicePanel } from "../components/SmartAdvicePanel";
 import { TripTimeline } from "../components/TripTimeline";
+import { generateTripAdvice } from "../lib/adviceEngine";
 import type { TripPlan } from "../types";
 import {
   calculateTotalCost,
@@ -44,6 +46,7 @@ export const PlanDetail = ({ plans, onDelete }: PlanDetailProps) => {
   }
 
   const scoreResult = calculateWorthScoreDetails(plan);
+  const smartAdvice = generateTripAdvice(plan);
 
   const handleDelete = () => {
     const confirmed = window.confirm(
@@ -139,6 +142,8 @@ export const PlanDetail = ({ plans, onDelete }: PlanDetailProps) => {
 
         <ScoreBreakdown result={scoreResult} />
       </section>
+
+      <SmartAdvicePanel advice={smartAdvice} />
 
       <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
         <BudgetBreakdown plan={plan} />

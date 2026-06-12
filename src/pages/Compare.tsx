@@ -1,6 +1,7 @@
 import { ArrowDownAZ, GitCompare, Plus, Trophy } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { generateTripAdvice } from "../lib/adviceEngine";
 import type { TripPlan } from "../types";
 import { calculateTotalCost, calculateWorthScore } from "../utils/calculations";
 import { formatCurrency, formatDate } from "../utils/format";
@@ -23,6 +24,7 @@ const rows = [
   ["日期", (plan: TripPlan) => formatDate(plan.date)],
   ["城市", (plan: TripPlan) => plan.city],
   ["场馆", (plan: TripPlan) => plan.venue],
+  ["建议摘要", (plan: TripPlan) => generateTripAdvice(plan).summary],
   ["座位类型", (plan: TripPlan) => plan.seatType || "未填写"],
   ["交通方式", (plan: TripPlan) => plan.transportMode || "未填写"],
   ["酒店区域", (plan: TripPlan) => plan.hotelArea || "未填写"],
@@ -176,6 +178,9 @@ export const Compare = ({ plans }: CompareProps) => {
                   {plan.city} · {calculateWorthScore(plan)} 分 ·{" "}
                   {formatCurrency(calculateTotalCost(plan))}
                 </span>
+                <span className="mt-2 block text-xs leading-5 text-slate-500">
+                  {generateTripAdvice(plan).summary}
+                </span>
               </span>
             </label>
           ))}
@@ -199,7 +204,7 @@ export const Compare = ({ plans }: CompareProps) => {
       <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-soft">
         {selectedPlans.length ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] border-collapse text-left text-sm">
+            <table className="w-full min-w-[960px] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
                   <th className="w-36 px-4 py-3 font-semibold text-slate-600">项目</th>

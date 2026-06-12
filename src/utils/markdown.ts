@@ -1,4 +1,8 @@
 import { buildTimeline } from "../components/TripTimeline";
+import {
+  generateTripAdvice,
+  getRecommendationLabel,
+} from "../lib/adviceEngine";
 import type { TripPlan } from "../types";
 import {
   calculateTotalCost,
@@ -16,6 +20,10 @@ const safe = (value: unknown, fallback = "未填写") => {
 
 const row = (label: string, value: unknown) => `| ${label} | ${safe(value)} |`;
 
+const list = (items: string[]) => {
+  return items.length ? items.map((item) => `- ${item}`).join("\n") : "- 暂无";
+};
+
 export const createMarkdownFileName = (plan: TripPlan) => {
   const slug = plan.title
     .toLowerCase()
@@ -28,6 +36,7 @@ export const createMarkdownFileName = (plan: TripPlan) => {
 
 export const generateTripMarkdown = (plan: TripPlan) => {
   const score = calculateWorthScoreDetails(plan);
+  const advice = generateTripAdvice(plan);
   const timeline = buildTimeline(plan);
   const budgetRows = [
     row("票价", formatCurrency(plan.ticketPrice)),
@@ -41,7 +50,10 @@ export const generateTripMarkdown = (plan: TripPlan) => {
   ].join("\n");
 
   const breakdown = score.breakdown
-    .map((item) => `- ${item.label}: ${item.value > 0 ? "+" : ""}${item.value} (${item.description})`)
+    .map(
+      (item) =>
+        `- ${item.label}: ${item.value > 0 ? "+" : ""}${item.value} (${item.description})`,
+    )
     .join("\n");
 
   const timelineText = timeline
@@ -104,6 +116,23 @@ ${budgetRows}
 ### 评分拆解
 
 ${breakdown}
+
+## 智能建议 / Smart Advice
+
+- 推荐等级：${getRecommendationLabel(advice.recommendationLevel)}
+- Summary：${advice.summary}
+
+### Highlights
+
+${list(advice.highlights)}
+
+### Risks
+
+${list(advice.risks)}
+
+### Suggestions
+
+${list(advice.suggestions)}
 
 ## 时间线
 
