@@ -13,11 +13,17 @@ import {
 } from "./utils/dataManagement";
 import {
   getStoredPlans,
+  normalizePlan,
   removePlan,
   savePlans,
   updatePlan,
   upsertPlan,
 } from "./utils/storage";
+
+const getUpdatedTime = (plan: TripPlan) => {
+  const time = new Date(plan.updatedAt).getTime();
+  return Number.isNaN(time) ? null : time;
+};
 
 export const App = () => {
   const [plans, setPlans] = useState<TripPlan[]>(() => getStoredPlans());
@@ -61,6 +67,53 @@ export const App = () => {
     setPlans([]);
   };
 
+  const handlePullCloudPlans = (cloudPlans: TripPlan[]) => {
+    const byId = new Map(plans.map((plan) => [plan.id, normalizePlan(plan)]));
+    let added = 0;
+    let updated = 0;
+    let keptLocal = 0;
+
+    for (const rawCloudPlan of cloudPlans) {
+      if (!rawCloudPlan.id) {
+        continue;
+      }
+
+      const cloudPlan = normalizePlan(rawCloudPlan);
+      const localPlan = byId.get(cloudPlan.id);
+
+      if (!localPlan) {
+        byId.set(cloudPlan.id, cloudPlan);
+        added += 1;
+        continue;
+      }
+
+      const cloudUpdatedAt = getUpdatedTime(cloudPlan);
+      const localUpdatedAt = getUpdatedTime(localPlan);
+
+      if (
+        cloudUpdatedAt !== null &&
+        localUpdatedAt !== null &&
+        cloudUpdatedAt > localUpdatedAt
+      ) {
+        byId.set(cloudPlan.id, cloudPlan);
+        updated += 1;
+      } else {
+        keptLocal += 1;
+      }
+    }
+
+    const next = [...byId.values()].sort((a, b) => a.date.localeCompare(b.date));
+    savePlans(next);
+    setPlans(next);
+
+    return {
+      added,
+      updated,
+      keptLocal,
+      total: next.length,
+    };
+  };
+
   return (
     <BrowserRouter>
       <Routes>
@@ -73,6 +126,7 @@ export const App = () => {
                 onImportJson={handleImportJson}
                 onLoadSamples={handleLoadSamples}
                 onClearAll={handleClearAll}
+                onPullCloudPlans={handlePullCloudPlans}
               />
             }
           />

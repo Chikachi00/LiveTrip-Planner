@@ -37,7 +37,7 @@ const jsonHeaders = {
   "content-type": "application/json; charset=utf-8",
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "GET,POST,OPTIONS",
-  "access-control-allow-headers": "content-type,authorization",
+  "access-control-allow-headers": "content-type,x-sync-space-id,x-sync-token",
 };
 
 const json = (body: unknown, init: ResponseInit = {}) => {
@@ -50,6 +50,10 @@ const json = (body: unknown, init: ResponseInit = {}) => {
   });
 };
 
+const unauthorized = () => {
+  return json({ error: "Invalid or missing sync credentials" }, { status: 401 });
+};
+
 const readJsonBody = async <T>(request: Request): Promise<T | null> => {
   try {
     return (await request.json()) as T;
@@ -58,11 +62,17 @@ const readJsonBody = async <T>(request: Request): Promise<T | null> => {
   }
 };
 
-const randomToken = () => {
-  const bytes = new Uint8Array(24);
+const randomHex = (length: number) => {
+  const bytes = new Uint8Array(Math.ceil(length / 2));
   crypto.getRandomValues(bytes);
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0"))
+    .join("")
+    .slice(0, length);
 };
+
+const createSyncSpaceId = () => `space_${randomHex(8)}`;
+
+const createSyncToken = () => `token_${randomHex(20)}`;
 
 const sha256 = async (value: string) => {
   const data = new TextEncoder().encode(value);
@@ -70,11 +80,6 @@ const sha256 = async (value: string) => {
   return Array.from(new Uint8Array(digest), (byte) =>
     byte.toString(16).padStart(2, "0"),
   ).join("");
-};
-
-const getBearerToken = (request: Request) => {
-  const authorization = request.headers.get("authorization") ?? "";
-  return authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
 };
 
 const requireDb = (env: Env) => {
@@ -85,21 +90,25 @@ const requireDb = (env: Env) => {
   return env.DB;
 };
 
-const verifySyncSpace = async (
-  db: D1Database,
-  spaceId: string,
-  token: string,
-) => {
-  if (!spaceId || !token) {
-    return false;
+const verifySyncSpace = async (request: Request, db: D1Database) => {
+  const syncSpaceId = request.headers.get("x-sync-space-id")?.trim() ?? "";
+  const syncToken = request.headers.get("x-sync-token")?.trim() ?? "";
+
+  if (!syncSpaceId || !syncToken) {
+    return null;
   }
 
   const row = await db
     .prepare("SELECT id, token_hash FROM sync_spaces WHERE id = ?")
-    .bind(spaceId)
+    .bind(syncSpaceId)
     .first<SyncSpaceRow>();
 
-  return Boolean(row && row.token_hash === (await sha256(token)));
+  if (!row) {
+    return null;
+  }
+
+  const tokenHash = await sha256(syncToken);
+  return row.token_hash === tokenHash ? { syncSpaceId: row.id } : null;
 };
 
 const createSyncSpace = async (request: Request, env: Env) => {
@@ -108,21 +117,20 @@ const createSyncSpace = async (request: Request, env: Env) => {
   }
 
   const db = requireDb(env);
-  const id = crypto.randomUUID();
-  const token = randomToken();
-  const tokenHash = await sha256(token);
+  const syncSpaceId = createSyncSpaceId();
+  const syncToken = createSyncToken();
+  const tokenHash = await sha256(syncToken);
 
   await db
     .prepare(
       "INSERT INTO sync_spaces (id, token_hash, created_at, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
     )
-    .bind(id, tokenHash)
+    .bind(syncSpaceId, tokenHash)
     .run();
 
   return json({
-    id,
-    token,
-    createdAt: new Date().toISOString(),
+    syncSpaceId,
+    syncToken,
   });
 };
 
@@ -132,22 +140,21 @@ const pushPlans = async (request: Request, env: Env) => {
   }
 
   const db = requireDb(env);
-  const body = await readJsonBody<{
-    spaceId?: string;
-    syncSpaceId?: string;
-    token?: string;
-    plans?: Array<Record<string, unknown>>;
-  }>(request);
+  const verified = await verifySyncSpace(request, db);
 
-  const spaceId = body?.spaceId ?? body?.syncSpaceId ?? "";
-  const token = body?.token ?? getBearerToken(request);
-  const plans = Array.isArray(body?.plans) ? body.plans : [];
-
-  if (!(await verifySyncSpace(db, spaceId, token))) {
-    return json({ error: "Invalid sync credentials" }, { status: 401 });
+  if (!verified) {
+    return unauthorized();
   }
 
-  const validPlans = plans.filter(
+  const body = await readJsonBody<{ plans?: Array<Record<string, unknown>> }>(
+    request,
+  );
+
+  if (!Array.isArray(body?.plans)) {
+    return json({ error: "plans must be an array" }, { status: 400 });
+  }
+
+  const validPlans = body.plans.filter(
     (plan) => typeof plan.id === "string" && plan.id.trim().length > 0,
   );
 
@@ -162,13 +169,13 @@ const pushPlans = async (request: Request, env: Env) => {
            updated_at = CURRENT_TIMESTAMP,
            deleted_at = NULL`,
       )
-      .bind(plan.id, spaceId, JSON.stringify(plan))
+      .bind(plan.id, verified.syncSpaceId, JSON.stringify(plan))
       .run();
   }
 
   return json({
     ok: true,
-    pushedCount: validPlans.length,
+    synced: validPlans.length,
   });
 };
 
@@ -178,19 +185,17 @@ const pullPlans = async (request: Request, env: Env) => {
   }
 
   const db = requireDb(env);
-  const url = new URL(request.url);
-  const spaceId = url.searchParams.get("spaceId") ?? url.searchParams.get("syncSpaceId") ?? "";
-  const token = url.searchParams.get("token") ?? getBearerToken(request);
+  const verified = await verifySyncSpace(request, db);
 
-  if (!(await verifySyncSpace(db, spaceId, token))) {
-    return json({ error: "Invalid sync credentials" }, { status: 401 });
+  if (!verified) {
+    return unauthorized();
   }
 
   const rows = await db
     .prepare(
       "SELECT plan_json FROM cloud_trip_plans WHERE sync_space_id = ? AND deleted_at IS NULL ORDER BY updated_at DESC",
     )
-    .bind(spaceId)
+    .bind(verified.syncSpaceId)
     .all<CloudTripPlanRow>();
 
   const plans = (rows.results ?? []).flatMap((row) => {

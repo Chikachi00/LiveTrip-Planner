@@ -1,5 +1,6 @@
 import { Plane, Plus, Sparkles, WalletCards } from "lucide-react";
 import { Link } from "react-router-dom";
+import { CloudSyncPanel } from "../components/CloudSyncPanel";
 import { DataManager } from "../components/DataManager";
 import { PlanCard } from "../components/PlanCard";
 import type { TripPlan } from "../types";
@@ -11,6 +12,12 @@ type DashboardProps = {
   onImportJson: (raw: string) => number;
   onLoadSamples: () => number;
   onClearAll: () => void;
+  onPullCloudPlans: (cloudPlans: TripPlan[]) => {
+    added: number;
+    updated: number;
+    keptLocal: number;
+    total: number;
+  };
 };
 
 export const Dashboard = ({
@@ -18,6 +25,7 @@ export const Dashboard = ({
   onImportJson,
   onLoadSamples,
   onClearAll,
+  onPullCloudPlans,
 }: DashboardProps) => {
   const topPlan = [...plans].sort(
     (a, b) => calculateWorthScore(b) - calculateWorthScore(a),
@@ -42,7 +50,7 @@ export const Dashboard = ({
                 把冲动远征变成清醒心动
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-                记录场次、预算、交通、住宿和体力风险，把每一次远征都整理成可比较、可导出的计划。
+                记录场次、预算、交通、住宿和体力风险，把每一次远征都整理成可比较、可导出、可手动同步的计划。
               </p>
             </div>
             <Link
@@ -151,6 +159,8 @@ export const Dashboard = ({
           </div>
         )}
       </section>
+
+      <CloudSyncPanel plans={plans} onPullPlans={onPullCloudPlans} />
 
       <DataManager
         plans={plans}

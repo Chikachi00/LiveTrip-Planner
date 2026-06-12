@@ -35,7 +35,9 @@ export const DataManager = ({
     try {
       const raw = await file.text();
       const count = onImportJson(raw);
-      setMessage(count > 0 ? `成功导入 ${count} 条计划。` : "没有导入计划，请检查 JSON 结构。");
+      setMessage(
+        count > 0 ? `成功导入 ${count} 条计划。` : "没有导入计划，请检查 JSON 结构。",
+      );
     } catch {
       setMessage("导入失败：文件不是有效的 JSON 备份。");
     }
@@ -43,7 +45,9 @@ export const DataManager = ({
 
   const loadSamples = () => {
     const count = onLoadSamples();
-    setMessage(count > 0 ? `已追加 ${count} 条示例数据。` : "示例数据已存在，没有重复追加。");
+    setMessage(
+      count > 0 ? `已追加 ${count} 条示例数据。` : "示例数据已存在，没有重复追加。",
+    );
   };
 
   const clearAll = () => {
@@ -69,7 +73,7 @@ export const DataManager = ({
           </p>
           <h2 className="mt-2 text-xl font-semibold">备份、导入和示例数据</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            数据仍保存在浏览器 localStorage。建议在公开展示或迁移设备前导出 JSON 备份。
+            数据仍优先保存在浏览器 localStorage。建议在公开展示、迁移设备或清空数据前导出 JSON 备份。
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
