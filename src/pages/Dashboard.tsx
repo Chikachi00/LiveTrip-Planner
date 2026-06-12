@@ -1,7 +1,5 @@
 import { Plane, Plus, Sparkles, WalletCards } from "lucide-react";
 import { Link } from "react-router-dom";
-import { CloudSyncPanel } from "../components/CloudSyncPanel";
-import { DataManager } from "../components/DataManager";
 import { PlanCard } from "../components/PlanCard";
 import type { Venue } from "../data/venues";
 import type { TripPlan } from "../types";
@@ -11,27 +9,13 @@ import { formatCurrency, formatDate } from "../utils/format";
 type DashboardProps = {
   plans: TripPlan[];
   customVenues: Venue[];
-  onImportJson: (raw: string) => {
-    importedPlans: number;
-    importedCustomVenues: number;
-  };
   onLoadSamples: () => number;
-  onClearAll: () => void;
-  onPullCloudPlans: (cloudPlans: TripPlan[]) => {
-    added: number;
-    updated: number;
-    keptLocal: number;
-    total: number;
-  };
 };
 
 export const Dashboard = ({
   plans,
   customVenues,
-  onImportJson,
   onLoadSamples,
-  onClearAll,
-  onPullCloudPlans,
 }: DashboardProps) => {
   const topPlan = [...plans].sort(
     (a, b) => calculateWorthScore(b) - calculateWorthScore(a),
@@ -166,15 +150,6 @@ export const Dashboard = ({
         )}
       </section>
 
-      <CloudSyncPanel plans={plans} onPullPlans={onPullCloudPlans} />
-
-      <DataManager
-        plans={plans}
-        customVenues={customVenues}
-        onImportJson={onImportJson}
-        onLoadSamples={onLoadSamples}
-        onClearAll={onClearAll}
-      />
     </div>
   );
 };

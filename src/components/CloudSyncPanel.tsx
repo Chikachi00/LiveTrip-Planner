@@ -1,28 +1,59 @@
 import { Cloud, Link2, RefreshCw, Send, Unplug } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
+import type { Venue } from "../data/venues";
 import {
   clearSyncCredentials,
   createSyncSpace,
   getSyncCredentials,
-  pullPlansFromCloud,
-  pushPlansToCloud,
+  pullAllDataFromCloud,
+  pushAllDataToCloud,
   saveSyncCredentials,
   type SyncCredentials,
 } from "../lib/cloudSync";
+import type { UserPreferences } from "../lib/userPreferences";
 import type { TripPlan } from "../types";
 import { formatDateTime } from "../utils/format";
 
-type CloudSyncPanelProps = {
-  plans: TripPlan[];
-  onPullPlans: (cloudPlans: TripPlan[]) => {
+type CloudPullMergeResult = {
+  plans: {
     added: number;
     updated: number;
     keptLocal: number;
     total: number;
   };
+  customVenues: {
+    added: number;
+    updated: number;
+    keptLocal: number;
+    total: number;
+  };
+  preferencesStatus: "none" | "imported" | "updated" | "keptLocal";
 };
 
-export const CloudSyncPanel = ({ plans, onPullPlans }: CloudSyncPanelProps) => {
+type CloudSyncPanelProps = {
+  plans: TripPlan[];
+  customVenues: Venue[];
+  userPreferences: UserPreferences;
+  onPullCloudData: (data: {
+    cloudPlans: TripPlan[];
+    cloudCustomVenues: Venue[];
+    cloudPreferences: UserPreferences | null;
+  }) => CloudPullMergeResult;
+};
+
+const preferenceStatusText: Record<CloudPullMergeResult["preferencesStatus"], string> = {
+  none: "云端没有用户偏好",
+  imported: "已导入云端偏好",
+  updated: "已使用较新的云端偏好",
+  keptLocal: "已保留本地偏好",
+};
+
+export const CloudSyncPanel = ({
+  plans,
+  customVenues,
+  userPreferences,
+  onPullCloudData,
+}: CloudSyncPanelProps) => {
   const [credentials, setCredentials] = useState<SyncCredentials | null>(null);
   const [syncSpaceId, setSyncSpaceId] = useState("");
   const [syncToken, setSyncToken] = useState("");
@@ -50,6 +81,12 @@ export const CloudSyncPanel = ({ plans, onPullPlans }: CloudSyncPanelProps) => {
     } finally {
       setIsBusy(false);
     }
+  };
+
+  const refreshCredentials = () => {
+    const stored = getSyncCredentials();
+    setCredentials(stored);
+    return stored;
   };
 
   const handleCreateSpace = () =>
@@ -85,20 +122,30 @@ export const CloudSyncPanel = ({ plans, onPullPlans }: CloudSyncPanelProps) => {
 
   const handlePush = () =>
     runAction(async () => {
-      const result = await pushPlansToCloud(plans);
-      const stored = getSyncCredentials();
-      setCredentials(stored);
-      setMessage(`上传完成，已同步 ${result.synced} 条计划。`);
+      const result = await pushAllDataToCloud({
+        plans,
+        customVenues,
+        preferences: userPreferences,
+      });
+      refreshCredentials();
+      const warning = result.warnings?.length ? ` ${result.warnings.join(" ")}` : "";
+      setMessage(
+        `上传完成：计划 ${result.synced.plans} 条，自定义场馆 ${result.synced.customVenues} 个，用户偏好 ${result.synced.preferences} 份。${warning}`,
+      );
     });
 
   const handlePull = () =>
     runAction(async () => {
-      const result = await pullPlansFromCloud();
-      const merge = onPullPlans(result.plans);
-      const stored = getSyncCredentials();
-      setCredentials(stored);
+      const result = await pullAllDataFromCloud();
+      const merge = onPullCloudData({
+        cloudPlans: result.plans,
+        cloudCustomVenues: result.customVenues,
+        cloudPreferences: result.preferences,
+      });
+      refreshCredentials();
+      const warning = result.warnings?.length ? ` ${result.warnings.join(" ")}` : "";
       setMessage(
-        `拉取完成：新增 ${merge.added} 条，更新 ${merge.updated} 条，保留本地 ${merge.keptLocal} 条。当前共 ${merge.total} 条计划。`,
+        `拉取完成：计划新增 ${merge.plans.added} 条、更新 ${merge.plans.updated} 条、保留本地 ${merge.plans.keptLocal} 条；自定义场馆新增 ${merge.customVenues.added} 个、更新 ${merge.customVenues.updated} 个、保留本地 ${merge.customVenues.keptLocal} 个；${preferenceStatusText[merge.preferencesStatus]}。${warning}`,
       );
     });
 
@@ -130,7 +177,7 @@ export const CloudSyncPanel = ({ plans, onPullPlans }: CloudSyncPanelProps) => {
           </p>
           <h2 className="mt-2 text-xl font-semibold">Cloudflare D1 云端同步</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            云端同步是手动操作：本地 localStorage 仍是主存储。你可以创建匿名 Sync Space，然后手动上传或拉取计划。
+            云端同步仍然是手动操作：localStorage 是主存储。v0.8 会同步计划、自定义场馆和用户偏好。
           </p>
         </div>
         <div className="rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-600">

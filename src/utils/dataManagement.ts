@@ -1,6 +1,10 @@
 import { samplePlans } from "../data/samplePlans";
 import type { Venue } from "../data/venues";
 import { normalizeVenue } from "../lib/customVenues";
+import {
+  normalizeUserPreferences,
+  type UserPreferences,
+} from "../lib/userPreferences";
 import type { TripPlan } from "../types";
 import { normalizePlan } from "./storage";
 
@@ -139,14 +143,19 @@ const parseVenueRecord = (
   });
 };
 
-export const createBackupJson = (plans: TripPlan[], customVenues: Venue[] = []) => {
+export const createBackupJson = (
+  plans: TripPlan[],
+  customVenues: Venue[] = [],
+  userPreferences?: UserPreferences,
+) => {
   return JSON.stringify(
     {
       app: "LiveTrip Planner",
-      version: "0.7",
+      version: "0.8",
       exportedAt: new Date().toISOString(),
       tripPlans: plans,
       customVenues,
+      userPreferences,
       plans, // Backward-friendly alias for older imports.
     },
     null,
@@ -179,6 +188,10 @@ export const importPlansFromJson = (
         : [];
   const venueCandidates =
     isRecord(parsed) && Array.isArray(parsed.customVenues) ? parsed.customVenues : [];
+  const userPreferencesCandidate =
+    isRecord(parsed) && isRecord(parsed.userPreferences)
+      ? normalizeUserPreferences(parsed.userPreferences)
+      : null;
 
   const usedPlanIds = new Set(existingPlans.map((plan) => plan.id));
   const importedPlans = planCandidates
@@ -195,8 +208,10 @@ export const importPlansFromJson = (
   return {
     plans: [...importedPlans, ...existingPlans],
     customVenues: [...importedCustomVenues, ...existingCustomVenues],
+    userPreferences: userPreferencesCandidate,
     importedCount: importedPlans.length,
     importedCustomVenueCount: importedCustomVenues.length,
+    importedUserPreferences: Boolean(userPreferencesCandidate),
   };
 };
 

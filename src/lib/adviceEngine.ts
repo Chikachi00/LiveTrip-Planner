@@ -1,5 +1,6 @@
 import { findCityGuideForPlan } from "../data/cityGuides";
 import { findVenueForPlan, type Venue } from "../data/venues";
+import type { UserPreferences } from "./userPreferences";
 import type { TripPlan } from "../types";
 import { calculateTotalCost, calculateWorthScoreDetails } from "../utils/calculations";
 import { formatCurrency } from "../utils/format";
@@ -101,6 +102,7 @@ export const getRecommendationLabel = (level: RecommendationLevel) => {
 export const generateTripAdvice = (
   plan: TripPlan,
   customVenues: Venue[] = [],
+  preferences?: UserPreferences,
 ): TripAdviceResult => {
   const score = calculateWorthScoreDetails(plan).finalScore;
   const totalCost = calculateTotalCost(plan);
@@ -111,6 +113,9 @@ export const generateTripAdvice = (
   const noHotelForTrip = (plan.hotelNights ?? 0) === 0 && isDifferentCity(plan);
   const venue = findVenueForPlan(plan, customVenues);
   const cityGuide = findCityGuideForPlan(plan);
+  const prefersQuietHotel = (preferences?.hotelQuietPreference ?? 3) >= 4;
+  const fatigueSensitive = (preferences?.fatigueSensitivity ?? 3) >= 4;
+  const budgetSensitive = (preferences?.budgetSensitivity ?? 3) >= 4;
 
   const recommendationLevel: RecommendationLevel =
     score >= 85 ? "strong_go" : score >= 70 ? "go" : score >= 55 ? "consider" : "skip";
@@ -275,6 +280,44 @@ export const generateTripAdvice = (
 
     if (combinedAreas.length) {
       hotelAdvice.push(`综合场馆和城市建议，可优先比较 ${combinedAreas.slice(0, 4).join("、")}。`);
+    }
+  }
+
+  if (preferences) {
+    if (preferences.homeCity) {
+      travelAdvice.push(`常驻/出发城市是 ${preferences.homeCity}，建议优先确认从该城市出发的最稳路线和返程余量。`);
+    }
+
+    if (prefersQuietHotel && plan.hotelQuietness <= 6 && (plan.hotelNights ?? 0) > 0) {
+      risks.push("你对酒店安静度偏敏感，当前酒店安静评分不高，睡眠恢复风险需要优先处理。");
+      hotelAdvice.push("建议优先选择可取消、评价中明确提到安静和隔音的住宿。");
+    }
+
+    if (
+      fatigueSensitive &&
+      ((durationHours !== null && durationHours >= 3.5) ||
+        (venue?.dayTripDifficultyScore ?? 0) >= 4)
+    ) {
+      risks.push("你的疲劳敏感度较高，长交通或高当天往返难度会明显放大体力压力。");
+      travelAdvice.push("建议减少额外行程，并尽量安排提前到达或多住一晚。");
+    }
+
+    if (budgetSensitive && totalCost >= 6500) {
+      risks.push("你的预算敏感度较高，而这次总预算偏高，建议设置明确的酒店和周边上限。");
+      budgetAdvice.push("可优先压缩酒店、周边或本地交通弹性支出，避免现场临时加码。");
+    }
+
+    if (preferences.preferStayNearVenue && commuteMinutes !== null && commuteMinutes >= 30) {
+      hotelAdvice.push("你偏好住场馆附近，当前通勤时间不短，建议比较更靠近场馆或直达线路的区域。");
+    }
+
+    if (
+      preferences.avoidLateNightReturn &&
+      ((plan.showEndTime && plan.showEndTime >= "21:00") ||
+        (venue?.crowdRiskScore ?? 0) >= 4)
+    ) {
+      travelAdvice.push("你倾向避免深夜返程，这场建议优先安排住宿或确认末班车后的备选方案。");
+      risks.push("深夜散场和返程不确定性较高，不建议把行程压到极限。");
     }
   }
 

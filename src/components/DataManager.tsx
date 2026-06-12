@@ -1,17 +1,20 @@
 import { Database, Download, FileUp, RotateCcw, Trash2 } from "lucide-react";
 import { ChangeEvent, useRef, useState } from "react";
 import type { Venue } from "../data/venues";
+import type { UserPreferences } from "../lib/userPreferences";
 import type { TripPlan } from "../types";
 import { createBackupJson, downloadJson } from "../utils/dataManagement";
 
 type ImportResult = {
   importedPlans: number;
   importedCustomVenues: number;
+  importedUserPreferences: boolean;
 };
 
 type DataManagerProps = {
   plans: TripPlan[];
   customVenues: Venue[];
+  userPreferences: UserPreferences;
   onImportJson: (raw: string) => ImportResult;
   onLoadSamples: () => number;
   onClearAll: () => void;
@@ -20,6 +23,7 @@ type DataManagerProps = {
 export const DataManager = ({
   plans,
   customVenues,
+  userPreferences,
   onImportJson,
   onLoadSamples,
   onClearAll,
@@ -29,10 +33,10 @@ export const DataManager = ({
 
   const exportJson = () => {
     downloadJson(
-      createBackupJson(plans, customVenues),
+      createBackupJson(plans, customVenues, userPreferences),
       "live-trip-planner-backup.json",
     );
-    setMessage("已导出 JSON 备份，包含计划和自定义场馆。");
+    setMessage("已导出 JSON 备份，包含计划、自定义场馆和用户偏好。");
   };
 
   const importJson = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -46,10 +50,15 @@ export const DataManager = ({
     try {
       const raw = await file.text();
       const result = onImportJson(raw);
-      const total = result.importedPlans + result.importedCustomVenues;
+      const total =
+        result.importedPlans +
+        result.importedCustomVenues +
+        (result.importedUserPreferences ? 1 : 0);
       setMessage(
         total > 0
-          ? `导入完成：计划 ${result.importedPlans} 条，自定义场馆 ${result.importedCustomVenues} 个。`
+          ? `导入完成：计划 ${result.importedPlans} 条，自定义场馆 ${result.importedCustomVenues} 个，用户偏好 ${
+              result.importedUserPreferences ? "已导入" : "未导入"
+            }。`
           : "没有导入数据，请检查 JSON 结构或重复 id。",
       );
     } catch {
@@ -66,7 +75,7 @@ export const DataManager = ({
 
   const clearAll = () => {
     const confirmed = window.confirm(
-      "确定清空所有本地数据吗？这会清除本机 localStorage 中的计划和自定义场馆，但不会删除云端数据。",
+      "确定清空所有本地数据吗？这会清除 localStorage 中的计划、自定义场馆和用户偏好，但不会删除云端数据。",
     );
 
     if (!confirmed) {
@@ -74,7 +83,7 @@ export const DataManager = ({
     }
 
     onClearAll();
-    setMessage("已清空所有本地计划和自定义场馆。");
+    setMessage("已清空所有本地计划、自定义场馆和用户偏好。");
   };
 
   return (
@@ -83,11 +92,11 @@ export const DataManager = ({
         <div>
           <p className="flex items-center gap-2 text-sm font-medium text-flight">
             <Database size={16} />
-            Data / Settings
+            Data Backup
           </p>
           <h2 className="mt-2 text-xl font-semibold">备份、导入和示例数据</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            数据仍优先保存在浏览器 localStorage。JSON 备份会包含演出计划和自定义场馆；内置场馆无需导出。
+            数据仍优先保存在浏览器 localStorage。JSON 备份会包含演出计划、自定义场馆和用户偏好；内置场馆无需导出。
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

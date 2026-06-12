@@ -1,9 +1,11 @@
 import { Building2, Hotel, TrainFront } from "lucide-react";
 import { formatVenueType, type Venue } from "../data/venues";
+import type { PreferredMapProvider } from "../lib/userPreferences";
 import { createMapSearchLinks } from "../utils/mapLinks";
 
 type VenueInsightCardProps = {
   venue: Venue;
+  preferredMapProvider?: PreferredMapProvider;
 };
 
 const scoreItems = (venue: Venue) => [
@@ -13,11 +15,15 @@ const scoreItems = (venue: Venue) => [
   ["当天往返难度", venue.dayTripDifficultyScore],
 ] as const;
 
-export const VenueInsightCard = ({ venue }: VenueInsightCardProps) => {
+export const VenueInsightCard = ({
+  venue,
+  preferredMapProvider,
+}: VenueInsightCardProps) => {
   const mapLinks = createMapSearchLinks({
     name: venue.name,
     city: venue.city,
     country: venue.country,
+    preferredProvider: preferredMapProvider,
   });
 
   return (

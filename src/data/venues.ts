@@ -28,6 +28,8 @@ export type Venue = {
   hotelAdvice: string;
   transportAdvice: string;
   notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export const venues: Venue[] = [

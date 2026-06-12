@@ -18,6 +18,7 @@ import { VenueInsightCard } from "../components/VenueInsightCard";
 import { findCityGuideForPlan } from "../data/cityGuides";
 import { findVenueForPlan, type Venue } from "../data/venues";
 import { generateTripAdvice } from "../lib/adviceEngine";
+import type { UserPreferences } from "../lib/userPreferences";
 import type { TripPlan } from "../types";
 import {
   calculateTotalCost,
@@ -29,10 +30,16 @@ import { createMapSearchLinks } from "../utils/mapLinks";
 type PlanDetailProps = {
   plans: TripPlan[];
   customVenues: Venue[];
+  userPreferences: UserPreferences;
   onDelete: (id: string) => void;
 };
 
-export const PlanDetail = ({ plans, customVenues, onDelete }: PlanDetailProps) => {
+export const PlanDetail = ({
+  plans,
+  customVenues,
+  userPreferences,
+  onDelete,
+}: PlanDetailProps) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const plan = plans.find((item) => item.id === id);
@@ -52,13 +59,14 @@ export const PlanDetail = ({ plans, customVenues, onDelete }: PlanDetailProps) =
   }
 
   const scoreResult = calculateWorthScoreDetails(plan);
-  const smartAdvice = generateTripAdvice(plan, customVenues);
+  const smartAdvice = generateTripAdvice(plan, customVenues, userPreferences);
   const venue = findVenueForPlan(plan, customVenues);
   const cityGuide = findCityGuideForPlan(plan);
   const mapLinks = createMapSearchLinks({
     name: venue?.name ?? plan.venue,
     city: venue?.city ?? plan.city,
     country: venue?.country,
+    preferredProvider: userPreferences.preferredMapProvider,
   });
 
   const handleDelete = () => {
@@ -171,7 +179,12 @@ export const PlanDetail = ({ plans, customVenues, onDelete }: PlanDetailProps) =
         <ScoreBreakdown result={scoreResult} />
       </section>
 
-      {venue ? <VenueInsightCard venue={venue} /> : null}
+      {venue ? (
+        <VenueInsightCard
+          venue={venue}
+          preferredMapProvider={userPreferences.preferredMapProvider}
+        />
+      ) : null}
 
       {cityGuide ? <CityGuideCard guide={cityGuide} /> : null}
 
@@ -182,7 +195,11 @@ export const PlanDetail = ({ plans, customVenues, onDelete }: PlanDetailProps) =
         <TripTimeline plan={plan} />
       </section>
 
-      <MarkdownExportPanel plan={plan} customVenues={customVenues} />
+      <MarkdownExportPanel
+        plan={plan}
+        customVenues={customVenues}
+        userPreferences={userPreferences}
+      />
 
       <section className="grid gap-4 lg:grid-cols-[1fr_1fr]">
         <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-soft">

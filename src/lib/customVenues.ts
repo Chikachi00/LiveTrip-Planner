@@ -52,6 +52,8 @@ export const normalizeVenue = (venue: Venue): Venue => ({
   hotelAdvice: venue.hotelAdvice ?? "",
   transportAdvice: venue.transportAdvice ?? "",
   notes: venue.notes ?? "",
+  createdAt: venue.createdAt ?? new Date().toISOString(),
+  updatedAt: venue.updatedAt ?? new Date().toISOString(),
 });
 
 export const getStoredCustomVenues = (): Venue[] => {
@@ -86,9 +88,13 @@ export const saveCustomVenues = (venues: Venue[]) => {
 };
 
 export const createCustomVenue = (input: VenueInput): Venue => {
+  const now = new Date().toISOString();
+
   return normalizeVenue({
     ...input,
     id: `custom_${crypto.randomUUID()}`,
+    createdAt: now,
+    updatedAt: now,
   });
 };
 
@@ -96,7 +102,17 @@ export const updateCustomVenue = (
   venues: Venue[],
   id: string,
   input: VenueInput,
-) => venues.map((venue) => (venue.id === id ? normalizeVenue({ ...input, id }) : venue));
+) =>
+  venues.map((venue) =>
+    venue.id === id
+      ? normalizeVenue({
+          ...input,
+          id,
+          createdAt: venue.createdAt,
+          updatedAt: new Date().toISOString(),
+        })
+      : venue,
+  );
 
 export const removeCustomVenue = (venues: Venue[], id: string) =>
   venues.filter((venue) => venue.id !== id);

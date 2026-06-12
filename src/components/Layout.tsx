@@ -13,7 +13,7 @@ const navItems = [
   { to: "/new", label: "New", icon: Plus },
   { to: "/compare", label: "Compare", icon: GitCompare },
   { to: "/venues", label: "Venues", icon: Building2 },
-  { to: "/settings", label: "Data", icon: Settings },
+  { to: "/settings", label: "Settings", icon: Settings },
 ];
 
 export const Layout = () => {

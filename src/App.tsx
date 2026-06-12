@@ -15,12 +15,22 @@ import {
 } from "./utils/dataManagement";
 import {
   getStoredCustomVenues,
+  normalizeVenue,
   removeCustomVenue,
   saveCustomVenues,
   updateCustomVenue,
   type VenueInput,
 } from "./lib/customVenues";
 import type { Venue } from "./data/venues";
+import {
+  getUserPreferences,
+  hasStoredUserPreferences,
+  clearUserPreferences,
+  normalizeUserPreferences,
+  saveImportedUserPreferences,
+  saveUserPreferences,
+  type UserPreferences,
+} from "./lib/userPreferences";
 import {
   getStoredPlans,
   normalizePlan,
@@ -35,10 +45,22 @@ const getUpdatedTime = (plan: TripPlan) => {
   return Number.isNaN(time) ? null : time;
 };
 
+const getEntityUpdatedTime = (value: { updatedAt?: string }) => {
+  if (!value.updatedAt) {
+    return null;
+  }
+
+  const time = new Date(value.updatedAt).getTime();
+  return Number.isNaN(time) ? null : time;
+};
+
 export const App = () => {
   const [plans, setPlans] = useState<TripPlan[]>(() => getStoredPlans());
   const [customVenues, setCustomVenues] = useState<Venue[]>(() =>
     getStoredCustomVenues(),
+  );
+  const [userPreferences, setUserPreferences] = useState<UserPreferences>(() =>
+    getUserPreferences(),
   );
 
   const sortedPlans = useMemo(
@@ -67,9 +89,27 @@ export const App = () => {
     saveCustomVenues(result.customVenues);
     setPlans(result.plans);
     setCustomVenues(result.customVenues);
+
+    let importedUserPreferences = false;
+
+    if (result.userPreferences) {
+      const shouldUseImported =
+        !hasStoredUserPreferences() ||
+        window.confirm(
+          "JSON 备份中包含用户偏好。是否使用导入文件中的偏好覆盖当前本地偏好？",
+        );
+
+      if (shouldUseImported) {
+        const nextPreferences = saveImportedUserPreferences(result.userPreferences);
+        setUserPreferences(nextPreferences);
+        importedUserPreferences = true;
+      }
+    }
+
     return {
       importedPlans: result.importedCount,
       importedCustomVenues: result.importedCustomVenueCount,
+      importedUserPreferences,
     };
   };
 
@@ -83,8 +123,10 @@ export const App = () => {
   const handleClearAll = () => {
     savePlans([]);
     saveCustomVenues([]);
+    const resetPreferences = clearUserPreferences();
     setPlans([]);
     setCustomVenues([]);
+    setUserPreferences(resetPreferences);
   };
 
   const handleCreateCustomVenue = (venue: Venue) => {
@@ -103,6 +145,15 @@ export const App = () => {
     const next = removeCustomVenue(customVenues, id);
     saveCustomVenues(next);
     setCustomVenues(next);
+  };
+
+  const handleSaveUserPreferences = (preferences: UserPreferences) => {
+    const next = saveUserPreferences(preferences);
+    setUserPreferences(next);
+  };
+
+  const handleResetUserPreferences = (preferences: UserPreferences) => {
+    setUserPreferences(preferences);
   };
 
   const handlePullCloudPlans = (cloudPlans: TripPlan[]) => {
@@ -152,6 +203,97 @@ export const App = () => {
     };
   };
 
+  const handlePullCloudData = ({
+    cloudPlans,
+    cloudCustomVenues,
+    cloudPreferences,
+  }: {
+    cloudPlans: TripPlan[];
+    cloudCustomVenues: Venue[];
+    cloudPreferences: UserPreferences | null;
+  }) => {
+    const planMerge = handlePullCloudPlans(cloudPlans);
+    const venuesById = new Map(
+      customVenues.map((venue) => [venue.id, normalizeVenue(venue)]),
+    );
+    let addedCustomVenues = 0;
+    let updatedCustomVenues = 0;
+    let keptLocalCustomVenues = 0;
+
+    for (const rawCloudVenue of cloudCustomVenues) {
+      if (!rawCloudVenue.id) {
+        continue;
+      }
+
+      const cloudVenue = normalizeVenue(rawCloudVenue);
+      const localVenue = venuesById.get(cloudVenue.id);
+
+      if (!localVenue) {
+        venuesById.set(cloudVenue.id, cloudVenue);
+        addedCustomVenues += 1;
+        continue;
+      }
+
+      const cloudUpdatedAt = getEntityUpdatedTime(rawCloudVenue);
+      const localUpdatedAt = getEntityUpdatedTime(localVenue);
+
+      if (
+        cloudUpdatedAt !== null &&
+        localUpdatedAt !== null &&
+        cloudUpdatedAt > localUpdatedAt
+      ) {
+        venuesById.set(cloudVenue.id, cloudVenue);
+        updatedCustomVenues += 1;
+      } else {
+        keptLocalCustomVenues += 1;
+      }
+    }
+
+    const nextCustomVenues = [...venuesById.values()];
+    saveCustomVenues(nextCustomVenues);
+    setCustomVenues(nextCustomVenues);
+
+    let preferencesStatus: "none" | "imported" | "updated" | "keptLocal" = "none";
+
+    if (cloudPreferences) {
+      const cloudHasUpdatedAt = Boolean(cloudPreferences.updatedAt);
+      const localUpdatedAt = getEntityUpdatedTime(userPreferences);
+      const cloudUpdatedAt = getEntityUpdatedTime(cloudPreferences);
+
+      if (!hasStoredUserPreferences()) {
+        const next = saveImportedUserPreferences(
+          normalizeUserPreferences(cloudPreferences),
+        );
+        setUserPreferences(next);
+        preferencesStatus = "imported";
+      } else if (
+        cloudHasUpdatedAt &&
+        cloudUpdatedAt !== null &&
+        localUpdatedAt !== null &&
+        cloudUpdatedAt > localUpdatedAt
+      ) {
+        const next = saveImportedUserPreferences(
+          normalizeUserPreferences(cloudPreferences),
+        );
+        setUserPreferences(next);
+        preferencesStatus = "updated";
+      } else {
+        preferencesStatus = "keptLocal";
+      }
+    }
+
+    return {
+      plans: planMerge,
+      customVenues: {
+        added: addedCustomVenues,
+        updated: updatedCustomVenues,
+        keptLocal: keptLocalCustomVenues,
+        total: nextCustomVenues.length,
+      },
+      preferencesStatus,
+    };
+  };
+
   return (
     <BrowserRouter>
       <Routes>
@@ -162,10 +304,7 @@ export const App = () => {
               <Dashboard
                 plans={sortedPlans}
                 customVenues={customVenues}
-                onImportJson={handleImportJson}
                 onLoadSamples={handleLoadSamples}
-                onClearAll={handleClearAll}
-                onPullCloudPlans={handlePullCloudPlans}
               />
             }
           />
@@ -174,6 +313,7 @@ export const App = () => {
             element={
               <NewPlan
                 customVenues={customVenues}
+                userPreferences={userPreferences}
                 onCreateCustomVenue={handleCreateCustomVenue}
                 onCreate={handleCreate}
               />
@@ -185,6 +325,7 @@ export const App = () => {
               <PlanDetail
                 plans={plans}
                 customVenues={customVenues}
+                userPreferences={userPreferences}
                 onDelete={handleDelete}
               />
             }
@@ -202,7 +343,13 @@ export const App = () => {
           />
           <Route
             path="/compare"
-            element={<Compare plans={sortedPlans} customVenues={customVenues} />}
+            element={
+              <Compare
+                plans={sortedPlans}
+                customVenues={customVenues}
+                userPreferences={userPreferences}
+              />
+            }
           />
           <Route
             path="/venues"
@@ -221,10 +368,13 @@ export const App = () => {
               <Settings
                 plans={plans}
                 customVenues={customVenues}
+                userPreferences={userPreferences}
+                onSaveUserPreferences={handleSaveUserPreferences}
+                onResetUserPreferences={handleResetUserPreferences}
                 onImportJson={handleImportJson}
                 onLoadSamples={handleLoadSamples}
                 onClearAll={handleClearAll}
-                onPullCloudPlans={handlePullCloudPlans}
+                onPullCloudData={handlePullCloudData}
               />
             }
           />

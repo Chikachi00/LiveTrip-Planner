@@ -33,6 +33,14 @@ type CloudTripPlanRow = {
   plan_json: string;
 };
 
+type CloudCustomVenueRow = {
+  venue_json: string;
+};
+
+type CloudUserPreferencesRow = {
+  preferences_json: string;
+};
+
 const jsonHeaders = {
   "content-type": "application/json; charset=utf-8",
   "access-control-allow-origin": "*",
@@ -111,6 +119,13 @@ const verifySyncSpace = async (request: Request, db: D1Database) => {
   return row.token_hash === tokenHash ? { syncSpaceId: row.id } : null;
 };
 
+const isMissingV08TableError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  return /cloud_custom_venues|cloud_user_preferences|no such table|not found/i.test(
+    message,
+  );
+};
+
 const createSyncSpace = async (request: Request, env: Env) => {
   if (request.method !== "POST") {
     return json({ error: "Method not allowed" }, { status: 405 });
@@ -134,7 +149,7 @@ const createSyncSpace = async (request: Request, env: Env) => {
   });
 };
 
-const pushPlans = async (request: Request, env: Env) => {
+const pushSyncData = async (request: Request, env: Env) => {
   if (request.method !== "POST") {
     return json({ error: "Method not allowed" }, { status: 405 });
   }
@@ -146,9 +161,11 @@ const pushPlans = async (request: Request, env: Env) => {
     return unauthorized();
   }
 
-  const body = await readJsonBody<{ plans?: Array<Record<string, unknown>> }>(
-    request,
-  );
+  const body = await readJsonBody<{
+    plans?: Array<Record<string, unknown>>;
+    customVenues?: Array<Record<string, unknown>>;
+    preferences?: Record<string, unknown>;
+  }>(request);
 
   if (!Array.isArray(body?.plans)) {
     return json({ error: "plans must be an array" }, { status: 400 });
@@ -173,13 +190,76 @@ const pushPlans = async (request: Request, env: Env) => {
       .run();
   }
 
+  let syncedCustomVenues = 0;
+  let syncedPreferences = 0;
+  const warnings: string[] = [];
+  const validCustomVenues = Array.isArray(body.customVenues)
+    ? body.customVenues.filter(
+        (venue) => typeof venue.id === "string" && venue.id.trim().length > 0,
+      )
+    : [];
+
+  if (validCustomVenues.length) {
+    try {
+      for (const venue of validCustomVenues) {
+        await db
+          .prepare(
+            `INSERT INTO cloud_custom_venues (id, sync_space_id, venue_json, created_at, updated_at, deleted_at)
+             VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL)
+             ON CONFLICT(id) DO UPDATE SET
+               sync_space_id = excluded.sync_space_id,
+               venue_json = excluded.venue_json,
+               updated_at = CURRENT_TIMESTAMP,
+               deleted_at = NULL`,
+          )
+          .bind(venue.id, verified.syncSpaceId, JSON.stringify(venue))
+          .run();
+      }
+
+      syncedCustomVenues = validCustomVenues.length;
+    } catch (error) {
+      if (!isMissingV08TableError(error)) {
+        throw error;
+      }
+
+      warnings.push("v0.8 D1 migration is required for custom venue sync.");
+    }
+  }
+
+  if (body.preferences && typeof body.preferences === "object") {
+    try {
+      await db
+        .prepare(
+          `INSERT INTO cloud_user_preferences (sync_space_id, preferences_json, created_at, updated_at)
+           VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+           ON CONFLICT(sync_space_id) DO UPDATE SET
+             preferences_json = excluded.preferences_json,
+             updated_at = CURRENT_TIMESTAMP`,
+        )
+        .bind(verified.syncSpaceId, JSON.stringify(body.preferences))
+        .run();
+      syncedPreferences = 1;
+    } catch (error) {
+      if (!isMissingV08TableError(error)) {
+        throw error;
+      }
+
+      warnings.push("v0.8 D1 migration is required for user preference sync.");
+    }
+  }
+
   return json({
     ok: true,
-    synced: validPlans.length,
+    synced: {
+      plans: validPlans.length,
+      customVenues: syncedCustomVenues,
+      preferences: syncedPreferences,
+    },
+    warnings,
   });
 };
 
-const pullPlans = async (request: Request, env: Env) => {
+const pullSyncData = async (request: Request, env: Env) => {
   if (request.method !== "GET") {
     return json({ error: "Method not allowed" }, { status: 405 });
   }
@@ -206,9 +286,62 @@ const pullPlans = async (request: Request, env: Env) => {
     }
   });
 
+  let customVenues: unknown[] = [];
+  let preferences: unknown = null;
+  const warnings: string[] = [];
+
+  try {
+    const venueRows = await db
+      .prepare(
+        "SELECT venue_json FROM cloud_custom_venues WHERE sync_space_id = ? AND deleted_at IS NULL ORDER BY updated_at DESC",
+      )
+      .bind(verified.syncSpaceId)
+      .all<CloudCustomVenueRow>();
+
+    customVenues = (venueRows.results ?? []).flatMap((row) => {
+      try {
+        return [JSON.parse(row.venue_json)];
+      } catch {
+        return [];
+      }
+    });
+  } catch (error) {
+    if (!isMissingV08TableError(error)) {
+      throw error;
+    }
+
+    warnings.push("v0.8 D1 migration is required for custom venue sync.");
+  }
+
+  try {
+    const preferencesRow = await db
+      .prepare(
+        "SELECT preferences_json FROM cloud_user_preferences WHERE sync_space_id = ?",
+      )
+      .bind(verified.syncSpaceId)
+      .first<CloudUserPreferencesRow>();
+
+    if (preferencesRow) {
+      try {
+        preferences = JSON.parse(preferencesRow.preferences_json);
+      } catch {
+        preferences = null;
+      }
+    }
+  } catch (error) {
+    if (!isMissingV08TableError(error)) {
+      throw error;
+    }
+
+    warnings.push("v0.8 D1 migration is required for user preference sync.");
+  }
+
   return json({
     ok: true,
     plans,
+    customVenues,
+    preferences,
+    warnings,
   });
 };
 
@@ -233,11 +366,11 @@ export const onRequest = async ({ request, env }: PagesContext) => {
     }
 
     if (route === "sync/push") {
-      return pushPlans(request, env);
+      return pushSyncData(request, env);
     }
 
     if (route === "sync/pull") {
-      return pullPlans(request, env);
+      return pullSyncData(request, env);
     }
 
     return json({ error: "Not found" }, { status: 404 });

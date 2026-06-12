@@ -5,6 +5,7 @@ import {
   generateTripAdvice,
   getRecommendationLabel,
 } from "../lib/adviceEngine";
+import type { UserPreferences } from "../lib/userPreferences";
 import type { TripPlan } from "../types";
 import {
   calculateTotalCost,
@@ -37,9 +38,13 @@ export const createMarkdownFileName = (plan: TripPlan) => {
   return `live-trip-${slug || "plan"}-${plan.date}.md`;
 };
 
-export const generateTripMarkdown = (plan: TripPlan, customVenues: Venue[] = []) => {
+export const generateTripMarkdown = (
+  plan: TripPlan,
+  customVenues: Venue[] = [],
+  userPreferences?: UserPreferences,
+) => {
   const score = calculateWorthScoreDetails(plan);
-  const advice = generateTripAdvice(plan, customVenues);
+  const advice = generateTripAdvice(plan, customVenues, userPreferences);
   const timeline = buildTimeline(plan);
   const venue = findVenueForPlan(plan, customVenues);
   const cityGuide = findCityGuideForPlan(plan);
@@ -47,6 +52,7 @@ export const generateTripMarkdown = (plan: TripPlan, customVenues: Venue[] = [])
     name: venue?.name ?? plan.venue,
     city: venue?.city ?? plan.city,
     country: venue?.country,
+    preferredProvider: userPreferences?.preferredMapProvider,
   });
   const budgetRows = [
     row("票价", formatCurrency(plan.ticketPrice)),

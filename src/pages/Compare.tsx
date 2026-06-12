@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { findVenueForPlan, type Venue } from "../data/venues";
 import { generateTripAdvice } from "../lib/adviceEngine";
+import type { UserPreferences } from "../lib/userPreferences";
 import type { TripPlan } from "../types";
 import { calculateTotalCost, calculateWorthScore } from "../utils/calculations";
 import { formatCurrency, formatDate } from "../utils/format";
@@ -10,6 +11,7 @@ import { formatCurrency, formatDate } from "../utils/format";
 type CompareProps = {
   plans: TripPlan[];
   customVenues?: Venue[];
+  userPreferences?: UserPreferences;
 };
 
 type SortKey = "worth" | "cost" | "date" | "preference" | "rarity";
@@ -53,7 +55,11 @@ const sortPlans = (plans: TripPlan[], sortKey: SortKey) => {
   });
 };
 
-export const Compare = ({ plans, customVenues = [] }: CompareProps) => {
+export const Compare = ({
+  plans,
+  customVenues = [],
+  userPreferences,
+}: CompareProps) => {
   const [selectedIds, setSelectedIds] = useState<string[]>(
     sortPlans(plans, "worth")
       .slice(0, 3)
@@ -75,7 +81,11 @@ export const Compare = ({ plans, customVenues = [] }: CompareProps) => {
     ["日期", (plan: TripPlan) => formatDate(plan.date)],
     ["城市", (plan: TripPlan) => plan.city],
     ["场馆", (plan: TripPlan) => plan.venue],
-    ["建议摘要", (plan: TripPlan) => generateTripAdvice(plan, customVenues).summary],
+    [
+      "建议摘要",
+      (plan: TripPlan) =>
+        generateTripAdvice(plan, customVenues, userPreferences).summary,
+    ],
     ["散场风险", (plan: TripPlan) => venueValue(plan, "crowdRiskScore", customVenues)],
     ["住宿难度", (plan: TripPlan) => venueValue(plan, "hotelDifficultyScore", customVenues)],
     ["当天往返难度", (plan: TripPlan) => venueValue(plan, "dayTripDifficultyScore", customVenues)],
@@ -201,7 +211,7 @@ export const Compare = ({ plans, customVenues = [] }: CompareProps) => {
                     </span>
                   ) : null}
                   <span className="mt-2 block text-xs leading-5 text-slate-500">
-                    {generateTripAdvice(plan, customVenues).summary}
+                    {generateTripAdvice(plan, customVenues, userPreferences).summary}
                   </span>
                 </span>
               </label>

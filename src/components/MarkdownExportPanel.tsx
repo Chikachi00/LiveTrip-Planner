@@ -1,6 +1,7 @@
 import { Check, Clipboard, Download } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { Venue } from "../data/venues";
+import type { UserPreferences } from "../lib/userPreferences";
 import type { TripPlan } from "../types";
 import {
   createMarkdownFileName,
@@ -11,17 +12,19 @@ import {
 type MarkdownExportPanelProps = {
   plan: TripPlan;
   customVenues?: Venue[];
+  userPreferences?: UserPreferences;
 };
 
 export const MarkdownExportPanel = ({
   plan,
   customVenues = [],
+  userPreferences,
 }: MarkdownExportPanelProps) => {
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(false);
   const markdown = useMemo(
-    () => generateTripMarkdown(plan, customVenues),
-    [customVenues, plan],
+    () => generateTripMarkdown(plan, customVenues, userPreferences),
+    [customVenues, plan, userPreferences],
   );
   const fileName = createMarkdownFileName(plan);
 
