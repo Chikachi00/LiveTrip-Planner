@@ -1,0 +1,9 @@
+name = "livetrip-planner"
+compatibility_date = "2025-06-12"
+
+pages_build_output_dir = "dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "live-trip-planner-db"
+database_id = "live-trip-planner-db"
