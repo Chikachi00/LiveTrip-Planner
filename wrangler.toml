@@ -6,4 +6,4 @@ pages_build_output_dir = "dist"
 [[d1_databases]]
 binding = "DB"
 database_name = "live-trip-planner-db"
-database_id = "live-trip-planner-db"
+database_id = "e55520b5-bfcf-4a76-a2cc-6b4dc9e9b7c9"
