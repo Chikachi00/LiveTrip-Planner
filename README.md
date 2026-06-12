@@ -1,20 +1,31 @@
 # LiveTrip Planner
 
-## 中文说明
+## 中文
 
-LiveTrip Planner 是一个演唱会远征规划器前端 MVP。它帮助用户记录演出计划、预算拆分、体力压力、住宿体验和主观评分，并自动生成总预算与 0-100 的“值得去指数”。
+### 项目简介
 
-### v0.2 功能
+LiveTrip Planner 是一个面向演唱会、Live、展会联动远征的前端规划工具。它帮助用户把“想不想冲”拆成可比较的计划：预算、交通、住宿、座位、体力、后悔风险和时间线都放在同一个界面里。
 
-- Dashboard：展示全部演出远征计划卡片、计划总预算、平均指数、下一场和当前最优选择。
-- 新建 / 编辑计划：填写并修改演出日期、城市、场馆、票价、手续费、交通、酒店、餐饮、周边、本地交通、喜欢程度、稀有程度、疲劳程度、座位满意度、酒店安静程度、后悔风险和时间线字段。
-- 删除计划：详情页删除前会确认，删除后从 localStorage 移除并返回 Dashboard。
-- 值得去指数解释：展示最终分数、建议文字和分数拆解，包括喜欢程度、稀有程度、座位满意度、酒店安静程度、疲劳程度、后悔风险和预算压力。
-- 预算图表：使用 Recharts 展示票价、手续费、交通、酒店、餐饮、周边和本地交通的预算拆分。
-- 时间线：根据已有字段生成出发、到达演出城市、酒店入住、前往场馆、入场、开演、结束、返回酒店或返程。
-- 比较页排序：支持按值得去指数、总预算、演出日期、喜欢程度和稀有程度排序。
-- 本地保存：所有数据仍保存在浏览器 localStorage。
-- 示例数据：内置 GKSS Day1 横滨、GKSS Day2 横滨、Ado 横滨三条示例计划。
+当前版本是 v0.3，数据保存在浏览器 `localStorage`，适合作为公开展示、作品集和后续云端同步版本的基础。
+
+### 项目动机
+
+演出远征常常不是单纯买一张票，而是一次小型旅行决策：票价、手续费、酒店、交通、周边预算、座位视野、第二天体力恢复都会影响体验。LiveTrip Planner 的目标是让这些主观和客观因素都能被记录、解释和导出。
+
+### 核心功能
+
+- 创建、编辑、删除演出远征计划
+- 自动计算总预算
+- 生成 0-100 的“值得去指数”
+- 展示值得去指数拆解：喜欢程度、稀有程度、座位满意度、酒店安静程度、疲劳、后悔风险、预算压力
+- 使用 Recharts 展示预算拆分图表
+- 自动生成基础行程时间线
+- 多计划横向比较，并支持按值得去指数、总预算、日期、喜欢程度、稀有程度排序
+- 单个计划导出 Markdown，可复制到剪贴板或下载 `.md` 文件
+- 全部计划导出 JSON 备份
+- 从 JSON 文件导入计划，并校验基本结构
+- 追加示例数据，不覆盖已有计划
+- 一键清空本地数据，带确认提示
 
 ### 技术栈
 
@@ -27,7 +38,7 @@ LiveTrip Planner 是一个演唱会远征规划器前端 MVP。它帮助用户�
 - lucide-react
 - localStorage
 
-### 运行方式
+### 本地运行方式
 
 ```bash
 npm install
@@ -40,29 +51,74 @@ npm run dev
 npm run build
 ```
 
+### Cloudflare Pages 部署
+
+- Build command: `npm run build`
+- Build output directory: `dist`
+
+### 项目结构
+
+```text
+src/
+  components/        # 复用 UI 组件：卡片、表单、图表、导出、数据管理
+  data/              # 示例数据
+  pages/             # Dashboard、详情、编辑、新建、比较页
+  utils/             # 计算、格式化、存储、Markdown、JSON 管理
+  types.ts           # TripPlan 类型和评分结果类型
+docs/screenshots/    # README 预留截图目录
+```
+
+### 功能截图
+
+> 截图待补充，预留路径如下：
+
+- Dashboard: `docs/screenshots/dashboard.png`
+- Detail: `docs/screenshots/detail.png`
+- Compare: `docs/screenshots/compare.png`
+
+### 设计亮点
+
+- 评分不是黑盒：最终指数会拆成加分和扣分项，适合解释“为什么值得去”。
+- 预算不是纯列表：图表和百分比同时展示，快速看出压力来源。
+- 数据可带走：Markdown 适合分享行程，JSON 适合备份和迁移。
+- 本地优先：不依赖数据库、登录、地图 API 或 AI API，启动成本低。
+- UI 风格克制：接近 Notion + Google Flights 的轻量工具感，避免过度二次元或过度商务。
+
 ### 后续计划
 
 - Cloudflare D1 云端同步
-- Markdown 行程导出
+- Markdown 行程模板自定义
 - AI 行程建议
 - 场馆数据库
 - 多币种与汇率手动配置
+- PWA 离线访问
 
 ## English
 
-LiveTrip Planner is a frontend MVP for planning concert travel. It helps users capture trip details, budget items, fatigue, lodging quality, and subjective ratings, then calculates the total cost and a 0-100 worth score.
+### Overview
 
-### v0.2 Features
+LiveTrip Planner is a frontend planning tool for concert, live event, and event-combo travel. It turns a vague “should I go?” decision into a structured plan with budget, transportation, lodging, seats, fatigue, regret risk, and timeline details.
 
-- Dashboard: shows all concert trip cards, total budget, average score, next trip, and the strongest current option.
-- Create / Edit Plans: capture and update date, city, venue, ticket price, service fee, transportation, hotel, food, merch, local transit, preference, rarity, fatigue, seat satisfaction, hotel quietness, regret risk, and timeline fields.
-- Delete Plans: detail page asks for confirmation before removing a plan from localStorage and returning to the Dashboard.
-- Worth Score Explanation: shows the final score, advice, and breakdown items for preference, rarity, seat satisfaction, hotel quietness, fatigue, regret risk, and budget pressure.
-- Budget Chart: uses Recharts to visualize ticket, service fee, transportation, hotel, food, merch, and local transit costs.
-- Timeline: generates departure, city arrival, hotel check-in, venue travel, entry, show start, show end, and return steps from available fields.
-- Compare Sorting: supports sorting by worth score, total budget, show date, preference, and rarity.
-- Local persistence: stores all data in browser localStorage.
-- Sample plans: includes GKSS Day1 Yokohama, GKSS Day2 Yokohama, and Ado Yokohama.
+The current version is v0.3. Data is stored in browser `localStorage`, making it a strong base for portfolio demos, public showcases, and future cloud-sync iterations.
+
+### Motivation
+
+A concert trip is rarely just about buying a ticket. Ticket price, service fees, hotels, transportation, merch budget, seat quality, and post-show fatigue all shape the experience. LiveTrip Planner records both objective costs and subjective tradeoffs so each trip can be compared, explained, and exported.
+
+### Core Features
+
+- Create, edit, and delete concert trip plans
+- Automatically calculate total budget
+- Generate a 0-100 worth score
+- Explain the worth score with preference, rarity, seat satisfaction, hotel quietness, fatigue, regret risk, and budget pressure
+- Visualize budget breakdown with Recharts
+- Generate a basic itinerary timeline
+- Compare multiple plans with sorting by worth score, total budget, date, preference, and rarity
+- Export a single plan as Markdown, with clipboard copy and `.md` download
+- Export all plans as a JSON backup
+- Import plans from a JSON file with basic validation
+- Append sample data without overwriting existing plans
+- Clear all local data with confirmation
 
 ### Tech Stack
 
@@ -75,7 +131,7 @@ LiveTrip Planner is a frontend MVP for planning concert travel. It helps users c
 - lucide-react
 - localStorage
 
-### Getting Started
+### Local Development
 
 ```bash
 npm install
@@ -88,10 +144,44 @@ Build check:
 npm run build
 ```
 
+### Cloudflare Pages Deployment
+
+- Build command: `npm run build`
+- Build output directory: `dist`
+
+### Project Structure
+
+```text
+src/
+  components/        # Reusable UI: cards, forms, charts, export, data management
+  data/              # Sample data
+  pages/             # Dashboard, detail, edit, new, compare pages
+  utils/             # Calculations, formatting, storage, Markdown, JSON management
+  types.ts           # TripPlan and score result types
+docs/screenshots/    # Reserved README screenshot directory
+```
+
+### Screenshots
+
+> Screenshots are reserved for future updates:
+
+- Dashboard: `docs/screenshots/dashboard.png`
+- Detail: `docs/screenshots/detail.png`
+- Compare: `docs/screenshots/compare.png`
+
+### Design Highlights
+
+- Explainable scoring: the final score is broken down into positive and negative factors.
+- Budget clarity: charts and percentages make cost pressure easy to scan.
+- Portable data: Markdown for itinerary sharing, JSON for backup and migration.
+- Local-first: no database, login, map API, or AI API required.
+- Calm product UI: a lightweight Notion + Google Flights feel without becoming overly anime-styled or corporate.
+
 ### Roadmap
 
 - Cloudflare D1 cloud sync
-- Markdown itinerary export
+- Custom Markdown itinerary templates
 - AI itinerary suggestions
 - Venue database
 - Manual multi-currency settings
+- PWA offline access

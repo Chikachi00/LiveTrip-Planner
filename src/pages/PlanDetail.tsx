@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { BudgetBreakdown } from "../components/BudgetBreakdown";
+import { MarkdownExportPanel } from "../components/MarkdownExportPanel";
 import { ScoreBreakdown } from "../components/ScoreBreakdown";
 import { ScoreRing } from "../components/ScoreRing";
 import { TripTimeline } from "../components/TripTimeline";
@@ -143,6 +144,8 @@ export const PlanDetail = ({ plans, onDelete }: PlanDetailProps) => {
         <BudgetBreakdown plan={plan} />
         <TripTimeline plan={plan} />
       </section>
+
+      <MarkdownExportPanel plan={plan} />
 
       <section className="grid gap-4 lg:grid-cols-[1fr_1fr]">
         <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-soft">

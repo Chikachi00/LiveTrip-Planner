@@ -2,7 +2,7 @@ import { CheckCircle2 } from "lucide-react";
 import type { TripPlan } from "../types";
 import { formatDate } from "../utils/format";
 
-type TimelineItem = {
+export type TimelineItem = {
   label: string;
   time?: string;
   description: string;
@@ -14,25 +14,25 @@ export const buildTimeline = (plan: TripPlan): TimelineItem[] => [
   {
     label: "出发",
     time: plan.departureTime,
-    description: `前往 ${plan.city}，提前确认交通票据和证件。`,
+    description: `从 ${plan.departureCity || "出发地"} 前往 ${plan.city}，提前确认交通票据和证件。`,
   },
   {
     label: "到达演出城市",
     time: plan.arrivalTime,
-    description: `抵达 ${plan.city} 后优先处理行李、交通卡和补给。`,
+    description: `抵达 ${plan.city || "演出城市"} 后优先处理行李、交通卡和补给。`,
   },
   {
     label: "酒店入住",
     time: plan.hotelCheckInTime,
     description:
       plan.hotelCost > 0
-        ? "确认入住、充电和休息时间。"
+        ? `入住 ${plan.hotelArea || "酒店区域待定"}，预留充电和休息时间。`
         : "未填写酒店预算，可按当天返程或朋友住宿处理。",
   },
   {
     label: "前往场馆",
     time: plan.venueArrivalTime,
-    description: `预留去 ${plan.venue} 的排队、换乘和物贩时间。`,
+    description: `预留去 ${plan.venue || "场馆"} 的排队、换乘和物贩时间。`,
   },
   {
     label: "入场",
@@ -42,7 +42,7 @@ export const buildTimeline = (plan: TripPlan): TimelineItem[] => [
   {
     label: "开演",
     time: plan.showStartTime,
-    description: `${plan.artist} 的主场时刻，把手机电量和周边收好。`,
+    description: `${plan.artist || "演出"} 的主场时刻，把手机电量和周边收好。`,
   },
   {
     label: "结束",

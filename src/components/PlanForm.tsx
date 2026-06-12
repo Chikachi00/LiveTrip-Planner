@@ -12,6 +12,14 @@ export const defaultPlanInput: TripPlanInput = {
   date: today,
   city: "",
   venue: "",
+  seatType: "",
+  departureCity: "",
+  transportMode: "",
+  oneWayDuration: "",
+  hotelArea: "",
+  hotelNightlyPrice: 0,
+  hotelNights: 1,
+  venueCommuteTime: "",
   ticketPrice: 800,
   serviceFee: 80,
   transportCost: 1500,
@@ -39,10 +47,10 @@ export const defaultPlanInput: TripPlanInput = {
 const moneyFields = [
   ["ticketPrice", "票价"],
   ["serviceFee", "手续费"],
-  ["transportCost", "大交通"],
-  ["hotelCost", "酒店"],
-  ["foodBudget", "餐饮"],
-  ["merchBudget", "周边"],
+  ["transportCost", "交通费"],
+  ["hotelCost", "酒店总价"],
+  ["foodBudget", "餐饮预算"],
+  ["merchBudget", "周边预算"],
   ["localTransitCost", "本地交通"],
 ] as const;
 
@@ -92,6 +100,12 @@ export const PlanForm = ({
       artist: form.artist.trim(),
       city: form.city.trim(),
       venue: form.venue.trim(),
+      seatType: form.seatType?.trim(),
+      departureCity: form.departureCity?.trim(),
+      transportMode: form.transportMode?.trim(),
+      oneWayDuration: form.oneWayDuration?.trim(),
+      hotelArea: form.hotelArea?.trim(),
+      venueCommuteTime: form.venueCommuteTime?.trim(),
       notes: form.notes?.trim(),
     });
   };
@@ -188,6 +202,18 @@ export const PlanForm = ({
               />
             </label>
 
+            <label className="block">
+              <span className="mb-2 block text-sm font-medium text-slate-700">
+                座位类型
+              </span>
+              <input
+                value={form.seatType ?? ""}
+                onChange={(event) => updateField("seatType", event.target.value)}
+                placeholder="Arena / Stand / Standing"
+                className="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none transition focus:border-flight focus:ring-4 focus:ring-blue-100"
+              />
+            </label>
+
             <label className="block sm:col-span-2">
               <span className="mb-2 block text-sm font-medium text-slate-700">
                 备注
@@ -221,6 +247,101 @@ export const PlanForm = ({
                 />
               </label>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-soft">
+          <h2 className="text-lg font-semibold">交通信息</h2>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-2 block text-sm font-medium text-slate-700">
+                出发城市
+              </span>
+              <input
+                value={form.departureCity ?? ""}
+                onChange={(event) => updateField("departureCity", event.target.value)}
+                placeholder="上海"
+                className="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none transition focus:border-flight focus:ring-4 focus:ring-blue-100"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-2 block text-sm font-medium text-slate-700">
+                交通方式
+              </span>
+              <input
+                value={form.transportMode ?? ""}
+                onChange={(event) => updateField("transportMode", event.target.value)}
+                placeholder="飞机 + JR"
+                className="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none transition focus:border-flight focus:ring-4 focus:ring-blue-100"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-2 block text-sm font-medium text-slate-700">
+                单程耗时
+              </span>
+              <input
+                value={form.oneWayDuration ?? ""}
+                onChange={(event) => updateField("oneWayDuration", event.target.value)}
+                placeholder="约 6 小时"
+                className="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none transition focus:border-flight focus:ring-4 focus:ring-blue-100"
+              />
+            </label>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-soft">
+          <h2 className="text-lg font-semibold">住宿信息</h2>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-2 block text-sm font-medium text-slate-700">
+                酒店区域
+              </span>
+              <input
+                value={form.hotelArea ?? ""}
+                onChange={(event) => updateField("hotelArea", event.target.value)}
+                placeholder="Minato Mirai"
+                className="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none transition focus:border-flight focus:ring-4 focus:ring-blue-100"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-2 block text-sm font-medium text-slate-700">
+                每晚价格
+              </span>
+              <input
+                type="number"
+                min="0"
+                value={form.hotelNightlyPrice ?? 0}
+                onChange={(event) =>
+                  updateField("hotelNightlyPrice", Number(event.target.value))
+                }
+                className="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none transition focus:border-flight focus:ring-4 focus:ring-blue-100"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-2 block text-sm font-medium text-slate-700">
+                住宿晚数
+              </span>
+              <input
+                type="number"
+                min="0"
+                value={form.hotelNights ?? 0}
+                onChange={(event) => updateField("hotelNights", Number(event.target.value))}
+                className="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none transition focus:border-flight focus:ring-4 focus:ring-blue-100"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-2 block text-sm font-medium text-slate-700">
+                到场馆通勤时间
+              </span>
+              <input
+                value={form.venueCommuteTime ?? ""}
+                onChange={(event) => updateField("venueCommuteTime", event.target.value)}
+                placeholder="约 15 分钟"
+                className="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none transition focus:border-flight focus:ring-4 focus:ring-blue-100"
+              />
+            </label>
           </div>
         </div>
       </section>

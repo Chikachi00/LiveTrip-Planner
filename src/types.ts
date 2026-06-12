@@ -5,6 +5,14 @@ export type TripPlan = {
   date: string;
   city: string;
   venue: string;
+  seatType?: string;
+  departureCity?: string;
+  transportMode?: string;
+  oneWayDuration?: string;
+  hotelArea?: string;
+  hotelNightlyPrice?: number;
+  hotelNights?: number;
+  venueCommuteTime?: string;
   ticketPrice: number;
   serviceFee: number;
   transportCost: number;

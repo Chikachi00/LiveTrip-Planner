@@ -1,4 +1,4 @@
-import { ArrowDownAZ, GitCompare, Trophy } from "lucide-react";
+import { ArrowDownAZ, GitCompare, Plus, Trophy } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { TripPlan } from "../types";
@@ -23,6 +23,9 @@ const rows = [
   ["日期", (plan: TripPlan) => formatDate(plan.date)],
   ["城市", (plan: TripPlan) => plan.city],
   ["场馆", (plan: TripPlan) => plan.venue],
+  ["座位类型", (plan: TripPlan) => plan.seatType || "未填写"],
+  ["交通方式", (plan: TripPlan) => plan.transportMode || "未填写"],
+  ["酒店区域", (plan: TripPlan) => plan.hotelArea || "未填写"],
   ["总预算", (plan: TripPlan) => formatCurrency(calculateTotalCost(plan))],
   ["值得去指数", (plan: TripPlan) => calculateWorthScore(plan).toString()],
   ["喜欢程度", (plan: TripPlan) => `${plan.preference}/10`],
@@ -81,6 +84,35 @@ export const Compare = ({ plans }: CompareProps) => {
         : [...current, id],
     );
   };
+
+  if (plans.length < 2) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <p className="flex items-center gap-2 text-sm font-medium text-flight">
+            <GitCompare size={16} />
+            Compare
+          </p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-normal">
+            横向比较演出计划
+          </h1>
+        </div>
+        <div className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center shadow-soft">
+          <h2 className="text-xl font-semibold">至少需要两个计划才能比较</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">
+            现在还没有足够的演出计划。创建更多计划后，可以按值得去指数、预算和日期排序比较。
+          </p>
+          <Link
+            to="/new"
+            className="mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white"
+          >
+            <Plus size={16} />
+            新建计划
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -167,7 +199,7 @@ export const Compare = ({ plans }: CompareProps) => {
       <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-soft">
         {selectedPlans.length ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[820px] border-collapse text-left text-sm">
+            <table className="w-full min-w-[900px] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
                   <th className="w-36 px-4 py-3 font-semibold text-slate-600">项目</th>

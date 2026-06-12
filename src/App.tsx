@@ -7,7 +7,17 @@ import { EditPlan } from "./pages/EditPlan";
 import { NewPlan } from "./pages/NewPlan";
 import { PlanDetail } from "./pages/PlanDetail";
 import type { TripPlan, TripPlanInput } from "./types";
-import { getStoredPlans, removePlan, updatePlan, upsertPlan } from "./utils/storage";
+import {
+  appendMissingSamplePlans,
+  importPlansFromJson,
+} from "./utils/dataManagement";
+import {
+  getStoredPlans,
+  removePlan,
+  savePlans,
+  updatePlan,
+  upsertPlan,
+} from "./utils/storage";
 
 export const App = () => {
   const [plans, setPlans] = useState<TripPlan[]>(() => getStoredPlans());
@@ -32,11 +42,40 @@ export const App = () => {
     setPlans(next);
   };
 
+  const handleImportJson = (raw: string) => {
+    const result = importPlansFromJson(raw, plans);
+    savePlans(result.plans);
+    setPlans(result.plans);
+    return result.importedCount;
+  };
+
+  const handleLoadSamples = () => {
+    const result = appendMissingSamplePlans(plans);
+    savePlans(result.plans);
+    setPlans(result.plans);
+    return result.importedCount;
+  };
+
+  const handleClearAll = () => {
+    savePlans([]);
+    setPlans([]);
+  };
+
   return (
     <BrowserRouter>
       <Routes>
         <Route element={<Layout />}>
-          <Route index element={<Dashboard plans={sortedPlans} />} />
+          <Route
+            index
+            element={
+              <Dashboard
+                plans={sortedPlans}
+                onImportJson={handleImportJson}
+                onLoadSamples={handleLoadSamples}
+                onClearAll={handleClearAll}
+              />
+            }
+          />
           <Route path="/new" element={<NewPlan onCreate={handleCreate} />} />
           <Route
             path="/plans/:id"

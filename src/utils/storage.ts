@@ -8,6 +8,14 @@ const canUseLocalStorage = () => typeof window !== "undefined" && window.localSt
 export const normalizePlan = (plan: TripPlan): TripPlan => {
   return {
     ...plan,
+    seatType: plan.seatType ?? "",
+    departureCity: plan.departureCity ?? "",
+    transportMode: plan.transportMode ?? "",
+    oneWayDuration: plan.oneWayDuration ?? "",
+    hotelArea: plan.hotelArea ?? "",
+    hotelNightlyPrice: plan.hotelNightlyPrice ?? plan.hotelCost,
+    hotelNights: plan.hotelNights ?? (plan.hotelCost > 0 ? 1 : 0),
+    venueCommuteTime: plan.venueCommuteTime ?? "",
     serviceFee: plan.serviceFee ?? 0,
     localTransitCost: plan.localTransitCost ?? 0,
     hotelQuietness: plan.hotelQuietness ?? 7,

@@ -1,5 +1,6 @@
 import { Plane, Plus, Sparkles, WalletCards } from "lucide-react";
 import { Link } from "react-router-dom";
+import { DataManager } from "../components/DataManager";
 import { PlanCard } from "../components/PlanCard";
 import type { TripPlan } from "../types";
 import { calculateTotalCost, calculateWorthScore } from "../utils/calculations";
@@ -7,9 +8,17 @@ import { formatCurrency, formatDate } from "../utils/format";
 
 type DashboardProps = {
   plans: TripPlan[];
+  onImportJson: (raw: string) => number;
+  onLoadSamples: () => number;
+  onClearAll: () => void;
 };
 
-export const Dashboard = ({ plans }: DashboardProps) => {
+export const Dashboard = ({
+  plans,
+  onImportJson,
+  onLoadSamples,
+  onClearAll,
+}: DashboardProps) => {
   const topPlan = [...plans].sort(
     (a, b) => calculateWorthScore(b) - calculateWorthScore(a),
   )[0];
@@ -33,7 +42,7 @@ export const Dashboard = ({ plans }: DashboardProps) => {
                 把冲动远征变成清醒心动
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-                记录场次、预算、体力、住宿和后悔风险，用同一套指标比较每一场是否值得去。
+                记录场次、预算、交通、住宿和体力风险，把每一次远征都整理成可比较、可导出的计划。
               </p>
             </div>
             <Link
@@ -89,14 +98,15 @@ export const Dashboard = ({ plans }: DashboardProps) => {
           ) : (
             <div className="mt-8">
               <p className="text-sm leading-6 text-slate-300">
-                还没有计划。创建第一条演出远征计划后，这里会显示最值得去的一场。
+                还没有计划。创建第一条远征计划后，这里会显示最值得去的一场。
               </p>
-              <Link
-                to="/new"
-                className="mt-5 inline-flex rounded-lg bg-white px-4 py-2 text-sm font-semibold text-ink"
+              <button
+                type="button"
+                onClick={onLoadSamples}
+                className="mt-5 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-ink"
               >
-                创建计划
-              </Link>
+                加载示例数据
+              </button>
             </div>
           )}
         </div>
@@ -120,18 +130,34 @@ export const Dashboard = ({ plans }: DashboardProps) => {
           <div className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center">
             <h3 className="text-lg font-semibold">创建第一个演出远征计划</h3>
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">
-              从日期、城市、预算和喜欢程度开始。示例数据或新计划会保存在本机浏览器里。
+              先从一场你正在犹豫的 Live 开始。也可以加载示例数据，快速体验预算、指数和时间线。
             </p>
-            <Link
-              to="/new"
-              className="mt-5 inline-flex items-center gap-2 rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white"
-            >
-              <Plus size={16} />
-              新建计划
-            </Link>
+            <div className="mt-5 flex flex-col justify-center gap-2 sm:flex-row">
+              <Link
+                to="/new"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white"
+              >
+                <Plus size={16} />
+                创建第一个计划
+              </Link>
+              <button
+                type="button"
+                onClick={onLoadSamples}
+                className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:border-flight/40 hover:text-flight"
+              >
+                加载示例数据
+              </button>
+            </div>
           </div>
         )}
       </section>
+
+      <DataManager
+        plans={plans}
+        onImportJson={onImportJson}
+        onLoadSamples={onLoadSamples}
+        onClearAll={onClearAll}
+      />
     </div>
   );
 };
