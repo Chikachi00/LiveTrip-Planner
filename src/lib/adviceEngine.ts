@@ -1,3 +1,4 @@
+import { findVenueForPlan } from "../data/venues";
 import type { TripPlan } from "../types";
 import { calculateTotalCost, calculateWorthScoreDetails } from "../utils/calculations";
 import { formatCurrency } from "../utils/format";
@@ -72,6 +73,19 @@ const isDifferentCity = (plan: TripPlan) => {
   );
 };
 
+const areaMatches = (hotelArea: string | undefined, recommendedAreas: string[]) => {
+  const target = normalizeText(hotelArea);
+
+  if (!target) {
+    return true;
+  }
+
+  return recommendedAreas.some((area) => {
+    const normalizedArea = normalizeText(area);
+    return target.includes(normalizedArea) || normalizedArea.includes(target);
+  });
+};
+
 export const getRecommendationLabel = (level: RecommendationLevel) => {
   const labels: Record<RecommendationLevel, string> = {
     strong_go: "强烈推荐",
@@ -91,6 +105,7 @@ export const generateTripAdvice = (plan: TripPlan): TripAdviceResult => {
   const transportMode = normalizeText(plan.transportMode);
   const longFlight = transportMode.includes("飞机") || transportMode.includes("flight");
   const noHotelForTrip = (plan.hotelNights ?? 0) === 0 && isDifferentCity(plan);
+  const venue = findVenueForPlan(plan);
 
   const recommendationLevel: RecommendationLevel =
     score >= 85 ? "strong_go" : score >= 70 ? "go" : score >= 55 ? "consider" : "skip";
@@ -192,6 +207,43 @@ export const generateTripAdvice = (plan: TripPlan): TripAdviceResult => {
     budgetAdvice.push("酒店单价偏高，是优先优化的预算项。");
   }
 
+  if (venue) {
+    highlights.push(`已匹配内置场馆 ${venue.name}，可以参考静态场馆风险和住宿区域建议。`);
+
+    if (venue.crowdRiskScore >= 4) {
+      risks.push(`${venue.name} 散场风险 ${venue.crowdRiskScore}/5，建议预留离场和换乘缓冲。`);
+    }
+
+    if (venue.hotelDifficultyScore >= 4) {
+      hotelAdvice.push("该场馆住宿难度偏高，建议提前锁定可取消酒店，避免临近涨价。");
+      budgetAdvice.push("住宿可能是这场的主要压力项，建议先定区域再比价格。");
+    }
+
+    if (venue.dayTripDifficultyScore >= 4) {
+      travelAdvice.push("该场馆当天往返难度偏高，异地远征更建议留宿一晚。");
+    }
+
+    if (venue.accessScore <= 3) {
+      travelAdvice.push("场馆交通便利度一般，建议比普通场次多预留 30-45 分钟。");
+    }
+
+    if (venue.recommendedHotelAreas.length) {
+      hotelAdvice.push(`推荐优先比较 ${venue.recommendedHotelAreas.slice(0, 4).join("、")} 等区域。`);
+    }
+
+    if (!areaMatches(plan.hotelArea, venue.recommendedHotelAreas)) {
+      hotelAdvice.push("当前酒店区域不在推荐区域内，建议复核到场馆和散场后的通勤时间。");
+    }
+
+    if (
+      commuteMinutes !== null &&
+      commuteMinutes >= 35 &&
+      venue.crowdRiskScore >= 4
+    ) {
+      risks.push("通勤时间偏长且场馆散场风险较高，演出结束后的返程压力会被放大。");
+    }
+  }
+
   if (!suggestions.length) {
     suggestions.push("优先确认票务、交通和住宿三件事，再决定是否追加周边预算。");
   }
@@ -204,15 +256,17 @@ export const generateTripAdvice = (plan: TripPlan): TripAdviceResult => {
 
   const summaryBase = getRecommendationLabel(recommendationLevel);
   const pressure =
-    totalCost > 9500
-      ? "预算很高"
-      : totalCost > 6500
-        ? "预算偏高"
-        : plan.fatigue >= 8
-          ? "疲劳风险较大"
-          : plan.seatSatisfaction <= 5
-            ? "座位风险较高"
-            : "整体条件较平衡";
+    venue && venue.crowdRiskScore >= 4
+      ? "场馆散场风险较高"
+      : totalCost > 9500
+        ? "预算很高"
+        : totalCost > 6500
+          ? "预算偏高"
+          : plan.fatigue >= 8
+            ? "疲劳风险较大"
+            : plan.seatSatisfaction <= 5
+              ? "座位风险较高"
+              : "整体条件较平衡";
 
   return {
     summary: `${summaryBase}：${pressure}，值得去指数 ${score}/100。`,

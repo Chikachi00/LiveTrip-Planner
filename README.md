@@ -4,10 +4,10 @@
 
 ### 项目简介
 
-LiveTrip Planner 是一个面向演唱会、Live、展会联动远征的轻量 full-stack 规划工具。它把“这场到底值不值得冲？”拆成可记录、可比较、可解释的计划：预算、交通、住宿、座位、疲劳、后悔风险、时间线、Markdown 导出、本地备份和 Cloudflare D1 云端同步。
+LiveTrip Planner 是一个面向演唱会、Live、展会联动远征的轻量 full-stack 规划工具。它把“这场到底值不值得冲？”拆成可记录、可比较、可解释的计划：预算、交通、住宿、座位、疲劳、后悔风险、场馆风险、时间线、Markdown 导出、本地备份和 Cloudflare D1 云端同步。
 
 - Live Demo: https://livetrip-planner.pages.dev
-- 当前版本：v0.5
+- 当前版本：v0.6
 - 默认主存储：浏览器 `localStorage`
 - 可选云同步：Cloudflare Pages Functions + Cloudflare D1
 - D1 binding name: `DB`
@@ -15,53 +15,74 @@ LiveTrip Planner 是一个面向演唱会、Live、展会联动远征的轻量 f
 
 ### 项目动机
 
-演出远征通常不是单纯买一张票，而是一次小型旅行决策。票价、手续费、酒店、交通、周边预算、座位体验、第二天体力恢复、稀有程度和错过成本都会影响最终体验。LiveTrip Planner 的目标是把这些主观和客观因素结构化，让用户能够理性比较、导出、备份，并在需要时手动同步到云端。
+演出远征通常不是单纯买一张票，而是一次小型旅行决策。票价、手续费、酒店、交通、周边预算、座位体验、第二天体力恢复、稀有程度、场馆散场压力和住宿区域都会影响最终体验。LiveTrip Planner 的目标是把这些主观和客观因素结构化，让用户能够理性比较、导出、备份，并在需要时手动同步到云端。
 
 ### 核心功能
 
 - 创建、编辑、删除演出远征计划
+- 从内置场馆数据库选择场馆，自动填充城市和场馆名
+- 场馆提示：交通便利度、散场风险、住宿难度、当天往返难度
+- 城市住宿区域建议和静态场馆交通建议
 - 自动计算总预算
 - 生成 0-100 的“值得去指数”
-- 展示 Score Breakdown：喜欢程度、稀有程度、座位满意度、酒店安静程度、疲劳、后悔风险、预算压力
-- v0.5 Smart Advice Engine：基于规则生成行程与决策建议
-- 使用 Recharts 展示票价、手续费、交通、酒店、餐饮、周边、本地交通预算拆分
+- Score Breakdown：喜欢程度、稀有程度、座位满意度、酒店安静程度、疲劳、后悔风险、预算压力
+- Smart Advice Engine：基于规则生成预算、交通、住宿、票务和场馆风险建议
+- 使用 Recharts 展示预算拆分图表
 - 自动生成基础行程时间线
 - 多计划横向比较，并支持按值得去指数、总预算、演出日期、喜欢程度、稀有程度排序
 - 计划详情导出 Markdown，可复制到剪贴板或下载 `.md` 文件
-- 全部计划导出 JSON 备份
-- 从 JSON 文件导入计划，并校验基本结构
+- 全部计划导出 JSON 备份，从 JSON 文件导入计划
 - 加载示例数据，不覆盖用户已有计划
-- 清空本地数据，带确认提示
 - Cloudflare D1 云端同步：匿名 Sync Space、手动上传、手动拉取、断开同步
+
+### v0.6 场馆数据库
+
+v0.6 新增本地静态场馆数据库，数据位于 `src/data/venues.ts`。本阶段不接地图 API、不接实时酒店价格、不接交通实时查询，重点是提供稳定、可解释的远征决策参考。
+
+内置场馆数据包含：
+
+- 日本：K-Arena Yokohama、Yokohama Arena、Nissan Stadium、Zepp Yokohama、Tokyo Dome、Makuhari Messe、Saitama Super Arena、Osaka-jō Hall、Pia Arena MM、Pacifico Yokohama
+- 中国：上海梅赛德斯-奔驰文化中心、杭州奥体中心体育馆、长沙贺龙体育中心、北京凯迪拉克中心、广州宝能观致文化中心
+
+每个场馆包含 1-5 分静态评分：
+
+- 交通便利度：越高代表交通越方便
+- 散场风险：越高代表散场拥挤风险越高
+- 住宿难度：越高代表住宿越难或越贵
+- 当天往返难度：越高代表越不推荐当天往返
+
+场馆数据会用于：
+
+- 新建 / 编辑计划时选择内置场馆
+- 详情页展示 Venue Insight / 场馆提示
+- Dashboard 卡片展示“已收录场馆”和散场风险
+- 比较页展示散场风险、住宿难度、当天往返难度
+- Markdown 导出中的场馆提示区块
+- Smart Advice Engine 的场馆风险建议
+
+本阶段不接地图 API / 酒店 API 的原因：
+
+- 保持项目无需 API Key，适合公开展示和 Cloudflare Pages 部署
+- 避免实时价格、地图授权和隐私成本
+- 让建议逻辑保持可解释、可测试、可维护
+- 静态场馆知识已经足够支撑 MVP 级决策辅助
+
+后续可以加入用户自定义场馆数据库、地图跳转链接、人工维护的城市模板，或在静态建议之上加入更自然的 AI summary layer。
 
 ### v0.5 Smart Advice Engine
 
-v0.5 增加了纯前端、规则驱动的 Smart Advice Engine，不依赖任何外部 AI API。它会根据每个 `TripPlan` 的值得去指数、预算、喜欢程度、稀有程度、座位满意度、疲劳程度、交通耗时、住宿价格、酒店安静程度和通勤时间，生成更具体的建议。
+Smart Advice Engine 是纯前端、规则驱动的建议模块，不依赖任何外部 AI API。它会根据 `TripPlan` 的值得去指数、预算、喜欢程度、稀有程度、座位满意度、疲劳程度、交通耗时、住宿价格、酒店安静程度、通勤时间和场馆风险，生成更具体的建议。
 
 建议结果包含：
 
 - 推荐等级：强烈推荐、推荐、可以考虑、不太建议
 - Summary：一句话总览
-- 推荐理由
-- 风险提示
-- 优化建议
-- 预算建议
-- 交通建议
-- 住宿建议
-- 票务建议
-
-本阶段不接 AI API 的原因：
-
-- 保持项目可公开部署，无需 API Key
-- 降低用户隐私和成本风险
-- 确保离线和本地优先场景可用
-- 让建议逻辑可解释、可测试、可维护
-
-后续可以在规则建议之上加入 AI summary layer，用于把结构化建议润色成更自然的行程摘要，但核心决策逻辑仍应保持可解释。
+- 推荐理由、风险提示、优化建议
+- 预算建议、交通建议、住宿建议、票务建议
 
 ### v0.4 云端同步
 
-LiveTrip Planner v0.4 增加了 Cloudflare D1 云端同步，但仍然保持本地优先设计：
+LiveTrip Planner 使用 Cloudflare D1 云端同步，但仍然保持本地优先设计：
 
 - 不做用户注册
 - 不做登录系统
@@ -85,12 +106,6 @@ LiveTrip Planner v0.4 增加了 Cloudflare D1 云端同步，但仍然保持本�
 x-sync-space-id: space_xxxxxxxx
 x-sync-token: token_xxxxxxxxxxxxxxxxxxxx
 ```
-
-#### 手动上传 / 手动拉取
-
-- 上传：把当前本地 `TripPlan[]` 上传到 D1，同 id 计划执行 upsert。
-- 拉取：从 D1 拉取该 Sync Space 下的计划，并与本地计划合并。
-- 合并规则：id 不同直接追加；id 相同则优先保留 `updatedAt` 较新的版本；无法判断时保留本地版本。
 
 ### D1 表结构
 
@@ -195,7 +210,9 @@ public/
   _routes.json         # Pages Functions route include
 src/
   components/          # UI components
-  data/                # sample plans
+  data/
+    venues.ts          # static venue database
+    samplePlans.ts     # sample trip plans
   lib/
     adviceEngine.ts    # Smart Advice Engine
     cloudSync.ts       # Cloud Sync API client
@@ -218,17 +235,19 @@ docs/screenshots/      # README screenshot placeholders
 - 本地优先：没有云端配置时，应用仍然完整可用。
 - 手动同步：避免静默覆盖和复杂实时冲突。
 - 匿名同步：不做账号系统，用 Sync Space 降低使用门槛。
+- 场馆知识本地化：无需地图或酒店 API，也能给出稳定的远征建议。
 - 评分可解释：最终指数拆成加分和扣分项。
-- 智能建议可解释：v0.5 使用规则算法，而不是黑盒模型。
+- 智能建议可解释：使用规则算法，而不是黑盒模型。
 - 数据可带走：Markdown 适合分享行程，JSON 适合备份迁移，D1 适合跨设备恢复。
 - UI 克制：接近 Notion + Google Flights 的轻量工具感，避免过度二次元或过度商务。
 
 ### 后续计划
 
+- 用户自定义场馆数据库
+- 场馆详情页或地图跳转链接
 - 云端删除同步和软删除 UI
 - Markdown 行程模板自定义
 - AI summary layer，用于总结规则建议
-- 场馆数据库
 - 多币种与汇率手动配置
 - PWA 离线访问
 
@@ -236,10 +255,10 @@ docs/screenshots/      # README screenshot placeholders
 
 ### Overview
 
-LiveTrip Planner is a lightweight full-stack planning tool for concert, live event, and event-combo travel. It turns a vague “should I go?” decision into structured plans with budget, transportation, lodging, seats, fatigue, regret risk, timelines, Markdown export, local backup, and optional Cloudflare D1 sync.
+LiveTrip Planner is a lightweight full-stack planning tool for concert, live event, and event-combo travel. It turns a vague “should I go?” decision into structured plans with budget, transportation, lodging, seats, fatigue, regret risk, venue risk, timelines, Markdown export, local backup, and optional Cloudflare D1 sync.
 
 - Live Demo: https://livetrip-planner.pages.dev
-- Current version: v0.5
+- Current version: v0.6
 - Primary storage: browser `localStorage`
 - Optional cloud sync: Cloudflare Pages Functions + Cloudflare D1
 - D1 binding name: `DB`
@@ -247,53 +266,74 @@ LiveTrip Planner is a lightweight full-stack planning tool for concert, live eve
 
 ### Motivation
 
-A concert trip is rarely just about buying a ticket. Ticket price, service fees, hotels, transportation, merch budget, seat quality, next-day recovery, rarity, and regret risk all shape the experience. LiveTrip Planner records both objective costs and subjective tradeoffs so each trip can be compared, explained, exported, backed up, and manually synced when needed.
+A concert trip is rarely just about buying a ticket. Ticket price, service fees, hotels, transportation, merch budget, seat quality, next-day recovery, rarity, venue crowd flow, and hotel area all shape the experience. LiveTrip Planner records both objective costs and subjective tradeoffs so each trip can be compared, explained, exported, backed up, and manually synced when needed.
 
 ### Core Features
 
 - Create, edit, and delete concert trip plans
+- Select venues from a built-in static venue database
+- Auto-fill city and venue name after choosing a known venue
+- Venue Insight: access score, crowd risk, hotel difficulty, and day-trip difficulty
+- Recommended hotel areas and static venue travel advice
 - Automatically calculate total budget
 - Generate a 0-100 worth score
 - Explain the worth score with preference, rarity, seat satisfaction, hotel quietness, fatigue, regret risk, and budget pressure
-- v0.5 Smart Advice Engine with rule-driven trip and decision advice
+- Smart Advice Engine with rule-driven budget, travel, hotel, ticket, and venue risk advice
 - Visualize budget breakdown with Recharts
 - Generate a basic itinerary timeline
 - Compare multiple plans with sorting by worth score, total budget, date, preference, and rarity
-- Export a single plan as Markdown, with clipboard copy and `.md` download
-- Export all plans as a JSON backup
-- Import plans from a JSON file with basic validation
-- Append sample data without overwriting existing plans
-- Clear all local data with confirmation
+- Export a single plan as Markdown
+- Export and import JSON backups
 - Cloudflare D1 sync with anonymous Sync Space, manual push, manual pull, and disconnect
+
+### v0.6 Venue Database
+
+v0.6 adds a local static venue database in `src/data/venues.ts`. This version does not use map APIs, real-time hotel prices, real-time transit queries, or AI APIs. The goal is product-quality decision support rather than real-time travel search.
+
+Built-in venues include:
+
+- Japan: K-Arena Yokohama, Yokohama Arena, Nissan Stadium, Zepp Yokohama, Tokyo Dome, Makuhari Messe, Saitama Super Arena, Osaka-jō Hall, Pia Arena MM, Pacifico Yokohama
+- China: Mercedes-Benz Arena Shanghai, Hangzhou Olympic Sports Center Gymnasium, Changsha Helong Sports Center, Beijing Cadillac Arena, Guangzhou Baoneng Guanzhi Cultural Center
+
+Each venue uses 1-5 static scores:
+
+- Access score: higher means easier access
+- Crowd risk score: higher means more difficult post-show crowd flow
+- Hotel difficulty score: higher means harder or more expensive lodging
+- Day-trip difficulty score: higher means day trips are less recommended
+
+Venue data powers:
+
+- Venue selection in create/edit forms
+- Venue Insight cards on detail pages
+- Venue badges on Dashboard cards
+- Venue risk fields in comparison
+- Venue Insight sections in Markdown export
+- Venue-aware Smart Advice
+
+Why no map or hotel API at this stage:
+
+- Public deployment without API keys
+- Lower privacy and cost risk
+- Explainable, testable, and maintainable recommendations
+- Static venue knowledge already covers MVP-level trip decisions
+
+Future versions can add user-defined venues, map jump links, manually curated city templates, or an AI summary layer on top of the rule engine.
 
 ### v0.5 Smart Advice Engine
 
-v0.5 adds a pure front-end, rule-driven Smart Advice Engine. It does not call any external AI API. For each `TripPlan`, it evaluates the worth score, total budget, preference, rarity, seat satisfaction, fatigue, travel duration, hotel price, hotel quietness, and commute time.
+The Smart Advice Engine is a pure front-end, rule-driven module. It evaluates the worth score, budget, preference, rarity, seat satisfaction, fatigue, travel duration, hotel price, hotel quietness, commute time, and venue risks.
 
 The result includes:
 
 - Recommendation level: strong go, go, consider, or skip
 - Summary
-- Highlights
-- Risks
-- Suggestions
-- Budget advice
-- Travel advice
-- Hotel advice
-- Ticket advice
-
-Why no AI API at this stage:
-
-- The project can be deployed publicly without API keys
-- User privacy and running cost stay low
-- Local-first usage remains reliable
-- Advice remains explainable, testable, and maintainable
-
-A future AI summary layer can be added on top of the rule engine to rewrite structured advice into more natural itinerary summaries, while keeping the core decision logic explainable.
+- Highlights, risks, and suggestions
+- Budget, travel, hotel, and ticket advice
 
 ### v0.4 Cloud Sync
 
-LiveTrip Planner v0.4 added Cloudflare D1 cloud sync while keeping the app local-first:
+LiveTrip Planner keeps cloud sync local-first:
 
 - No user registration
 - No login system
@@ -303,26 +343,6 @@ LiveTrip Planner v0.4 added Cloudflare D1 cloud sync while keeping the app local
 - Anonymous Sync Space mechanism
 - `localStorage` remains the primary storage
 - Cloud sync only runs when the user clicks push or pull
-
-#### Anonymous Sync Space
-
-Users can create a Sync Space. The API returns:
-
-- `syncSpaceId`, for example `space_xxxxxxxx`
-- `syncToken`, for example `token_xxxxxxxxxxxxxxxxxxxx`
-
-The `syncToken` is shown only once. The server never stores it in plain text; it stores only the SHA-256 `token_hash`. Sync endpoints authenticate with request headers:
-
-```text
-x-sync-space-id: space_xxxxxxxx
-x-sync-token: token_xxxxxxxxxxxxxxxxxxxx
-```
-
-#### Manual Push / Pull
-
-- Push: uploads the current local `TripPlan[]` to D1 and upserts plans by id.
-- Pull: downloads plans from D1 for the connected Sync Space and merges them with local plans.
-- Merge rule: different ids are appended; matching ids keep the newer `updatedAt`; if freshness cannot be determined, the local version is kept.
 
 ### D1 Schema
 
@@ -404,16 +424,6 @@ npm run build
 - D1 database name: `live-trip-planner-db`
 - Pages Functions path: `functions/api/[[route]].ts`
 
-Key `wrangler.toml` settings:
-
-```toml
-pages_build_output_dir = "dist"
-
-[[d1_databases]]
-binding = "DB"
-database_name = "live-trip-planner-db"
-```
-
 ### Project Structure
 
 ```text
@@ -427,7 +437,9 @@ public/
   _routes.json         # Pages Functions route include
 src/
   components/          # UI components
-  data/                # sample plans
+  data/
+    venues.ts          # static venue database
+    samplePlans.ts     # sample trip plans
   lib/
     adviceEngine.ts    # Smart Advice Engine
     cloudSync.ts       # Cloud Sync API client
@@ -450,16 +462,18 @@ docs/screenshots/      # README screenshot placeholders
 - Local-first: the app remains fully usable without cloud setup.
 - Manual sync: avoids silent overwrites and complex real-time conflicts.
 - Anonymous sync: Sync Space avoids a full account system.
+- Local venue knowledge: useful trip advice without map or hotel APIs.
 - Explainable scoring: final scores are broken down into positive and negative factors.
-- Explainable smart advice: v0.5 uses transparent rules instead of a black-box model.
+- Explainable smart advice: transparent rules instead of a black-box model.
 - Portable data: Markdown for sharing, JSON for backup, D1 for cross-device recovery.
-- Restrained UI: a lightweight Notion + Google Flights style, without leaning too anime or too corporate.
+- Restrained UI: a lightweight Notion + Google Flights style.
 
 ### Roadmap
 
+- User-defined venue database
+- Venue detail pages or map jump links
 - Cloud delete sync and soft-delete UI
 - Custom Markdown itinerary templates
 - AI summary layer for rule-based advice
-- Venue database
 - Manual multi-currency and exchange-rate settings
 - PWA offline access

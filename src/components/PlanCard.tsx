@@ -1,5 +1,6 @@
-import { Calendar, MapPin, WalletCards } from "lucide-react";
+import { Building2, Calendar, MapPin, WalletCards } from "lucide-react";
 import { Link } from "react-router-dom";
+import { findVenueForPlan } from "../data/venues";
 import type { TripPlan } from "../types";
 import { calculateTotalCost, calculateWorthScoreDetails } from "../utils/calculations";
 import { formatCurrency, formatDate } from "../utils/format";
@@ -12,6 +13,7 @@ type PlanCardProps = {
 export const PlanCard = ({ plan }: PlanCardProps) => {
   const total = calculateTotalCost(plan);
   const score = calculateWorthScoreDetails(plan);
+  const venue = findVenueForPlan(plan);
 
   return (
     <Link
@@ -44,6 +46,13 @@ export const PlanCard = ({ plan }: PlanCardProps) => {
           <WalletCards size={16} className="text-sun" />
           总预算 {formatCurrency(total)}
         </p>
+        {venue ? (
+          <p className="inline-flex w-fit items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-flight">
+            <Building2 size={14} />
+            已收录场馆 · 散场风险 {venue.crowdRiskScore}/5 · 推荐住宿区域{" "}
+            {venue.recommendedHotelAreas.length} 个
+          </p>
+        ) : null}
       </div>
 
       <div className="mt-5 grid grid-cols-3 gap-2 border-t border-slate-100 pt-4 text-xs text-slate-500">

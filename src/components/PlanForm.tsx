@@ -1,6 +1,7 @@
-import { ArrowLeft, Save } from "lucide-react";
-import { FormEvent, useState } from "react";
+import { ArrowLeft, Building2, Save, Search } from "lucide-react";
+import { FormEvent, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { venues } from "../data/venues";
 import type { TripPlanInput } from "../types";
 import { RatingInput } from "./RatingInput";
 
@@ -12,6 +13,7 @@ export const defaultPlanInput: TripPlanInput = {
   date: today,
   city: "",
   venue: "",
+  venueId: "",
   seatType: "",
   departureCity: "",
   transportMode: "",
@@ -84,12 +86,47 @@ export const PlanForm = ({
     ...defaultPlanInput,
     ...initialValue,
   });
+  const [venueSearch, setVenueSearch] = useState("");
+
+  const filteredVenues = useMemo(() => {
+    const query = venueSearch.trim().toLowerCase();
+
+    if (!query) {
+      return venues;
+    }
+
+    return venues.filter((venue) =>
+      [venue.name, venue.nameJa, venue.city, venue.country, venue.area]
+        .filter(Boolean)
+        .some((value) => value!.toLowerCase().includes(query)),
+    );
+  }, [venueSearch]);
 
   const updateField = <Key extends keyof TripPlanInput>(
     key: Key,
     value: TripPlanInput[Key],
   ) => {
     setForm((current) => ({ ...current, [key]: value }));
+  };
+
+  const handleVenueChange = (venueId: string) => {
+    if (!venueId) {
+      setForm((current) => ({ ...current, venueId: "" }));
+      return;
+    }
+
+    const selected = venues.find((venue) => venue.id === venueId);
+
+    if (!selected) {
+      return;
+    }
+
+    setForm((current) => ({
+      ...current,
+      venueId: selected.id,
+      city: selected.city,
+      venue: selected.name,
+    }));
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -100,6 +137,7 @@ export const PlanForm = ({
       artist: form.artist.trim(),
       city: form.city.trim(),
       venue: form.venue.trim(),
+      venueId: form.venueId?.trim(),
       seatType: form.seatType?.trim(),
       departureCity: form.departureCity?.trim(),
       transportMode: form.transportMode?.trim(),
@@ -109,6 +147,8 @@ export const PlanForm = ({
       notes: form.notes?.trim(),
     });
   };
+
+  const selectedVenue = venues.find((venue) => venue.id === form.venueId);
 
   return (
     <form onSubmit={handleSubmit} className="mx-auto max-w-6xl space-y-6">
@@ -176,6 +216,51 @@ export const PlanForm = ({
               />
             </label>
 
+            <div className="sm:col-span-2 rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-ink">
+                <Building2 size={16} className="text-flight" />
+                选择场馆
+              </div>
+              <p className="mt-1 text-xs leading-5 text-slate-500">
+                可选择已收录场馆自动填充城市和场馆名，也可以保持自定义场馆并手动填写。
+              </p>
+              <label className="mt-3 block">
+                <span className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <Search size={14} />
+                  搜索场馆
+                </span>
+                <input
+                  value={venueSearch}
+                  onChange={(event) => setVenueSearch(event.target.value)}
+                  placeholder="按场馆、城市或国家搜索"
+                  className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-flight focus:ring-4 focus:ring-blue-100"
+                />
+              </label>
+              <label className="mt-3 block">
+                <span className="mb-2 block text-sm font-medium text-slate-700">
+                  内置场馆数据库
+                </span>
+                <select
+                  value={form.venueId ?? ""}
+                  onChange={(event) => handleVenueChange(event.target.value)}
+                  className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-flight focus:ring-4 focus:ring-blue-100"
+                >
+                  <option value="">自定义场馆</option>
+                  {filteredVenues.map((venue) => (
+                    <option key={venue.id} value={venue.id}>
+                      {venue.name} · {venue.city} · {venue.country}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {selectedVenue ? (
+                <p className="mt-3 rounded-md bg-white px-3 py-2 text-xs leading-5 text-slate-600">
+                  已收录场馆 · 散场风险 {selectedVenue.crowdRiskScore}/5 · 推荐住宿区域{" "}
+                  {selectedVenue.recommendedHotelAreas.length} 个
+                </p>
+              ) : null}
+            </div>
+
             <label className="block">
               <span className="mb-2 block text-sm font-medium text-slate-700">
                 城市
@@ -183,7 +268,10 @@ export const PlanForm = ({
               <input
                 required
                 value={form.city}
-                onChange={(event) => updateField("city", event.target.value)}
+                onChange={(event) => {
+                  updateField("city", event.target.value);
+                  updateField("venueId", "");
+                }}
                 placeholder="横滨"
                 className="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none transition focus:border-flight focus:ring-4 focus:ring-blue-100"
               />
@@ -196,7 +284,10 @@ export const PlanForm = ({
               <input
                 required
                 value={form.venue}
-                onChange={(event) => updateField("venue", event.target.value)}
+                onChange={(event) => {
+                  updateField("venue", event.target.value);
+                  updateField("venueId", "");
+                }}
                 placeholder="K-Arena Yokohama"
                 className="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none transition focus:border-flight focus:ring-4 focus:ring-blue-100"
               />
@@ -222,7 +313,7 @@ export const PlanForm = ({
                 value={form.notes}
                 onChange={(event) => updateField("notes", event.target.value)}
                 rows={4}
-                placeholder="记录抽票、同行、请假、换乘或其他小提醒"
+                placeholder="记录抽票、同行、请假、换乘或其他提醒。"
                 className="w-full rounded-lg border border-slate-200 px-3 py-3 text-sm outline-none transition focus:border-flight focus:ring-4 focus:ring-blue-100"
               />
             </label>
@@ -301,7 +392,7 @@ export const PlanForm = ({
               <input
                 value={form.hotelArea ?? ""}
                 onChange={(event) => updateField("hotelArea", event.target.value)}
-                placeholder="Minato Mirai"
+                placeholder="横滨站 / 樱木町"
                 className="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none transition focus:border-flight focus:ring-4 focus:ring-blue-100"
               />
             </label>
@@ -367,7 +458,7 @@ export const PlanForm = ({
             label="疲劳程度"
             name="fatigue"
             value={form.fatigue}
-            hint="数字越高，行程越累。"
+            hint="数字越高，行程越紧。"
             onChange={(value) => updateField("fatigue", value)}
           />
           <RatingInput

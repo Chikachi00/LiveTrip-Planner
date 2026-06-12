@@ -5,6 +5,7 @@ export type TripPlan = {
   date: string;
   city: string;
   venue: string;
+  venueId?: string;
   seatType?: string;
   departureCity?: string;
   transportMode?: string;

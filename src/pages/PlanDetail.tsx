@@ -13,6 +13,8 @@ import { ScoreBreakdown } from "../components/ScoreBreakdown";
 import { ScoreRing } from "../components/ScoreRing";
 import { SmartAdvicePanel } from "../components/SmartAdvicePanel";
 import { TripTimeline } from "../components/TripTimeline";
+import { VenueInsightCard } from "../components/VenueInsightCard";
+import { findVenueForPlan } from "../data/venues";
 import { generateTripAdvice } from "../lib/adviceEngine";
 import type { TripPlan } from "../types";
 import {
@@ -47,6 +49,7 @@ export const PlanDetail = ({ plans, onDelete }: PlanDetailProps) => {
 
   const scoreResult = calculateWorthScoreDetails(plan);
   const smartAdvice = generateTripAdvice(plan);
+  const venue = findVenueForPlan(plan);
 
   const handleDelete = () => {
     const confirmed = window.confirm(
@@ -142,6 +145,8 @@ export const PlanDetail = ({ plans, onDelete }: PlanDetailProps) => {
 
         <ScoreBreakdown result={scoreResult} />
       </section>
+
+      {venue ? <VenueInsightCard venue={venue} /> : null}
 
       <SmartAdvicePanel advice={smartAdvice} />
 

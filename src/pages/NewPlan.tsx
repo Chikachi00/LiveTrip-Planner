@@ -13,7 +13,7 @@ export const NewPlan = ({ onCreate }: NewPlanProps) => {
   return (
     <PlanForm
       title="新建远征计划"
-      subtitle="把预算、体力和心动程度都放进同一张决策表里。"
+      subtitle="把预算、体力、场馆风险和心动程度放进同一张决策表里。"
       submitLabel="保存计划"
       onSubmit={(value) => {
         const plan = createPlan(value);

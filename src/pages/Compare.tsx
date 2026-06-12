@@ -1,6 +1,7 @@
 import { ArrowDownAZ, GitCompare, Plus, Trophy } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { findVenueForPlan } from "../data/venues";
 import { generateTripAdvice } from "../lib/adviceEngine";
 import type { TripPlan } from "../types";
 import { calculateTotalCost, calculateWorthScore } from "../utils/calculations";
@@ -20,11 +21,22 @@ const sortOptions: Array<{ key: SortKey; label: string }> = [
   { key: "rarity", label: "稀有程度" },
 ];
 
+const venueValue = (
+  plan: TripPlan,
+  key: "crowdRiskScore" | "hotelDifficultyScore" | "dayTripDifficultyScore",
+) => {
+  const venue = findVenueForPlan(plan);
+  return venue ? `${venue[key]}/5` : "未收录";
+};
+
 const rows = [
   ["日期", (plan: TripPlan) => formatDate(plan.date)],
   ["城市", (plan: TripPlan) => plan.city],
   ["场馆", (plan: TripPlan) => plan.venue],
   ["建议摘要", (plan: TripPlan) => generateTripAdvice(plan).summary],
+  ["散场风险", (plan: TripPlan) => venueValue(plan, "crowdRiskScore")],
+  ["住宿难度", (plan: TripPlan) => venueValue(plan, "hotelDifficultyScore")],
+  ["当天往返难度", (plan: TripPlan) => venueValue(plan, "dayTripDifficultyScore")],
   ["座位类型", (plan: TripPlan) => plan.seatType || "未填写"],
   ["交通方式", (plan: TripPlan) => plan.transportMode || "未填写"],
   ["酒店区域", (plan: TripPlan) => plan.hotelArea || "未填写"],
@@ -102,7 +114,7 @@ export const Compare = ({ plans }: CompareProps) => {
         <div className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center shadow-soft">
           <h2 className="text-xl font-semibold">至少需要两个计划才能比较</h2>
           <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">
-            现在还没有足够的演出计划。创建更多计划后，可以按值得去指数、预算和日期排序比较。
+            现在还没有足够的演出计划。创建更多计划后，可以按值得去指数、预算、日期和场馆风险排序比较。
           </p>
           <Link
             to="/new"
@@ -161,29 +173,39 @@ export const Compare = ({ plans }: CompareProps) => {
         </div>
 
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {sortPlans(plans, sortKey).map((plan) => (
-            <label
-              key={plan.id}
-              className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 p-4 transition hover:border-flight/50"
-            >
-              <input
-                type="checkbox"
-                checked={selectedIds.includes(plan.id)}
-                onChange={() => togglePlan(plan.id)}
-                className="mt-1 h-4 w-4 accent-flight"
-              />
-              <span>
-                <span className="block font-semibold">{plan.title}</span>
-                <span className="mt-1 block text-sm text-slate-500">
-                  {plan.city} · {calculateWorthScore(plan)} 分 ·{" "}
-                  {formatCurrency(calculateTotalCost(plan))}
+          {sortPlans(plans, sortKey).map((plan) => {
+            const venue = findVenueForPlan(plan);
+
+            return (
+              <label
+                key={plan.id}
+                className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 p-4 transition hover:border-flight/50"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedIds.includes(plan.id)}
+                  onChange={() => togglePlan(plan.id)}
+                  className="mt-1 h-4 w-4 accent-flight"
+                />
+                <span>
+                  <span className="block font-semibold">{plan.title}</span>
+                  <span className="mt-1 block text-sm text-slate-500">
+                    {plan.city} · {calculateWorthScore(plan)} 分 ·{" "}
+                    {formatCurrency(calculateTotalCost(plan))}
+                  </span>
+                  {venue ? (
+                    <span className="mt-1 block text-xs text-flight">
+                      已收录场馆 · 散场风险 {venue.crowdRiskScore}/5 · 住宿难度{" "}
+                      {venue.hotelDifficultyScore}/5
+                    </span>
+                  ) : null}
+                  <span className="mt-2 block text-xs leading-5 text-slate-500">
+                    {generateTripAdvice(plan).summary}
+                  </span>
                 </span>
-                <span className="mt-2 block text-xs leading-5 text-slate-500">
-                  {generateTripAdvice(plan).summary}
-                </span>
-              </span>
-            </label>
-          ))}
+              </label>
+            );
+          })}
         </div>
       </section>
 
@@ -204,7 +226,7 @@ export const Compare = ({ plans }: CompareProps) => {
       <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-soft">
         {selectedPlans.length ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[960px] border-collapse text-left text-sm">
+            <table className="w-full min-w-[1040px] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
                   <th className="w-36 px-4 py-3 font-semibold text-slate-600">项目</th>

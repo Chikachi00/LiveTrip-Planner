@@ -1,4 +1,5 @@
 import { buildTimeline } from "../components/TripTimeline";
+import { findVenueForPlan } from "../data/venues";
 import {
   generateTripAdvice,
   getRecommendationLabel,
@@ -38,6 +39,7 @@ export const generateTripMarkdown = (plan: TripPlan) => {
   const score = calculateWorthScoreDetails(plan);
   const advice = generateTripAdvice(plan);
   const timeline = buildTimeline(plan);
+  const venue = findVenueForPlan(plan);
   const budgetRows = [
     row("票价", formatCurrency(plan.ticketPrice)),
     row("手续费", formatCurrency(plan.serviceFee)),
@@ -59,6 +61,27 @@ export const generateTripMarkdown = (plan: TripPlan) => {
   const timelineText = timeline
     .map((item) => `- **${item.label}** (${safe(item.time, "待定")}): ${item.description}`)
     .join("\n");
+
+  const venueSection = venue
+    ? `
+## 场馆提示 / Venue Insight
+
+| 项目 | 内容 |
+| --- | --- |
+${row("场馆名称", `${venue.name}${venue.nameJa ? ` / ${venue.nameJa}` : ""}`)}
+${row("城市 / 区域", `${venue.city} / ${venue.area}`)}
+${row("最近车站", venue.nearestStations.join("、"))}
+${row("推荐住宿区域", venue.recommendedHotelAreas.join("、"))}
+${row("交通便利度", `${venue.accessScore}/5`)}
+${row("散场风险", `${venue.crowdRiskScore}/5`)}
+${row("住宿难度", `${venue.hotelDifficultyScore}/5`)}
+${row("当天往返难度", `${venue.dayTripDifficultyScore}/5`)}
+
+- 交通建议：${venue.transportAdvice}
+- 散场建议：${venue.leavingAdvice}
+- 住宿建议：${venue.hotelAdvice}
+`
+    : "";
 
   return `# ${safe(plan.title, "Live Trip Plan")}
 
@@ -117,6 +140,7 @@ ${budgetRows}
 
 ${breakdown}
 
+${venueSection}
 ## 智能建议 / Smart Advice
 
 - 推荐等级：${getRecommendationLabel(advice.recommendationLevel)}
