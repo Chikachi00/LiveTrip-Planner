@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { PlanCard } from "../components/PlanCard";
 import type { TripPlan } from "../types";
 import { calculateTotalCost, calculateWorthScore } from "../utils/calculations";
-import { formatCurrency } from "../utils/format";
+import { formatCurrency, formatDate } from "../utils/format";
 
 type DashboardProps = {
   plans: TripPlan[];
@@ -20,6 +20,7 @@ export const Dashboard = ({ plans }: DashboardProps) => {
           plans.length,
       )
     : 0;
+  const nextPlan = [...plans].sort((a, b) => a.date.localeCompare(b.date))[0];
 
   return (
     <div className="space-y-6">
@@ -32,7 +33,7 @@ export const Dashboard = ({ plans }: DashboardProps) => {
                 把冲动远征变成清醒心动
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-                记录场次、预算、体力和座位预期，自动算出总花费和值得去指数。
+                记录场次、预算、体力、住宿和后悔风险，用同一套指标比较每一场是否值得去。
               </p>
             </div>
             <Link
@@ -57,8 +58,10 @@ export const Dashboard = ({ plans }: DashboardProps) => {
             </div>
             <div className="rounded-lg bg-orange-50 p-4">
               <Plane size={18} className="text-coral" />
-              <p className="mt-3 text-xs text-slate-500">计划数量</p>
-              <p className="mt-1 text-xl font-semibold">{plans.length}</p>
+              <p className="mt-3 text-xs text-slate-500">下一场</p>
+              <p className="mt-1 truncate text-xl font-semibold">
+                {nextPlan ? formatDate(nextPlan.date) : "暂无"}
+              </p>
             </div>
           </div>
         </div>
@@ -84,7 +87,17 @@ export const Dashboard = ({ plans }: DashboardProps) => {
               </div>
             </>
           ) : (
-            <p className="mt-4 text-sm text-slate-300">还没有计划。</p>
+            <div className="mt-8">
+              <p className="text-sm leading-6 text-slate-300">
+                还没有计划。创建第一条演出远征计划后，这里会显示最值得去的一场。
+              </p>
+              <Link
+                to="/new"
+                className="mt-5 inline-flex rounded-lg bg-white px-4 py-2 text-sm font-semibold text-ink"
+              >
+                创建计划
+              </Link>
+            </div>
           )}
         </div>
       </section>
@@ -105,13 +118,16 @@ export const Dashboard = ({ plans }: DashboardProps) => {
           </div>
         ) : (
           <div className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center">
-            <p className="text-slate-600">还没有演出计划。</p>
+            <h3 className="text-lg font-semibold">创建第一个演出远征计划</h3>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">
+              从日期、城市、预算和喜欢程度开始。示例数据或新计划会保存在本机浏览器里。
+            </p>
             <Link
               to="/new"
-              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white"
+              className="mt-5 inline-flex items-center gap-2 rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white"
             >
               <Plus size={16} />
-              创建第一条计划
+              新建计划
             </Link>
           </div>
         )}

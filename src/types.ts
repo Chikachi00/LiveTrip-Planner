@@ -6,17 +6,43 @@ export type TripPlan = {
   city: string;
   venue: string;
   ticketPrice: number;
+  serviceFee: number;
   transportCost: number;
   hotelCost: number;
   foodBudget: number;
   merchBudget: number;
+  localTransitCost: number;
   preference: number;
   rarity: number;
   fatigue: number;
   seatSatisfaction: number;
+  hotelQuietness: number;
+  regretRisk: number;
+  departureTime?: string;
+  arrivalTime?: string;
+  hotelCheckInTime?: string;
+  venueArrivalTime?: string;
+  entryTime?: string;
+  showStartTime?: string;
+  showEndTime?: string;
+  returnTime?: string;
   notes?: string;
   createdAt: string;
   updatedAt: string;
 };
 
 export type TripPlanInput = Omit<TripPlan, "id" | "createdAt" | "updatedAt">;
+
+export type ScoreBreakdownItem = {
+  label: string;
+  value: number;
+  maxAbsValue: number;
+  type: "positive" | "negative";
+  description: string;
+};
+
+export type WorthScoreResult = {
+  finalScore: number;
+  breakdown: ScoreBreakdownItem[];
+  advice: string;
+};

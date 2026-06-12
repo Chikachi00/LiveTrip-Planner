@@ -1,4 +1,4 @@
-import { GitCompare, Trophy } from "lucide-react";
+import { ArrowDownAZ, GitCompare, Trophy } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { TripPlan } from "../types";
@@ -8,6 +8,16 @@ import { formatCurrency, formatDate } from "../utils/format";
 type CompareProps = {
   plans: TripPlan[];
 };
+
+type SortKey = "worth" | "cost" | "date" | "preference" | "rarity";
+
+const sortOptions: Array<{ key: SortKey; label: string }> = [
+  { key: "worth", label: "值得去指数" },
+  { key: "cost", label: "总预算" },
+  { key: "date", label: "演出日期" },
+  { key: "preference", label: "喜欢程度" },
+  { key: "rarity", label: "稀有程度" },
+];
 
 const rows = [
   ["日期", (plan: TripPlan) => formatDate(plan.date)],
@@ -19,16 +29,43 @@ const rows = [
   ["稀有程度", (plan: TripPlan) => `${plan.rarity}/10`],
   ["疲劳程度", (plan: TripPlan) => `${plan.fatigue}/10`],
   ["座位满意度", (plan: TripPlan) => `${plan.seatSatisfaction}/10`],
+  ["酒店安静程度", (plan: TripPlan) => `${plan.hotelQuietness}/10`],
+  ["后悔风险", (plan: TripPlan) => `${plan.regretRisk}/10`],
 ] as const;
+
+const sortPlans = (plans: TripPlan[], sortKey: SortKey) => {
+  return [...plans].sort((a, b) => {
+    if (sortKey === "cost") {
+      return calculateTotalCost(a) - calculateTotalCost(b);
+    }
+
+    if (sortKey === "date") {
+      return a.date.localeCompare(b.date);
+    }
+
+    if (sortKey === "preference") {
+      return b.preference - a.preference;
+    }
+
+    if (sortKey === "rarity") {
+      return b.rarity - a.rarity;
+    }
+
+    return calculateWorthScore(b) - calculateWorthScore(a);
+  });
+};
 
 export const Compare = ({ plans }: CompareProps) => {
   const [selectedIds, setSelectedIds] = useState<string[]>(
-    plans.slice(0, 3).map((plan) => plan.id),
+    sortPlans(plans, "worth")
+      .slice(0, 3)
+      .map((plan) => plan.id),
   );
+  const [sortKey, setSortKey] = useState<SortKey>("worth");
 
   const selectedPlans = useMemo(
-    () => plans.filter((plan) => selectedIds.includes(plan.id)),
-    [plans, selectedIds],
+    () => sortPlans(plans.filter((plan) => selectedIds.includes(plan.id)), sortKey),
+    [plans, selectedIds, sortKey],
   );
 
   const bestPlan = selectedPlans.length
@@ -66,9 +103,31 @@ export const Compare = ({ plans }: CompareProps) => {
       </div>
 
       <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-soft">
-        <h2 className="text-lg font-semibold">选择要比较的计划</h2>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">选择要比较的计划</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              默认按值得去指数从高到低排序，也可以切换排序方式。
+            </p>
+          </div>
+          <label className="flex items-center gap-2 text-sm font-medium text-slate-600">
+            <ArrowDownAZ size={16} />
+            <select
+              value={sortKey}
+              onChange={(event) => setSortKey(event.target.value as SortKey)}
+              className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-flight focus:ring-4 focus:ring-blue-100"
+            >
+              {sortOptions.map((option) => (
+                <option key={option.key} value={option.key}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {plans.map((plan) => (
+          {sortPlans(plans, sortKey).map((plan) => (
             <label
               key={plan.id}
               className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 p-4 transition hover:border-flight/50"
@@ -82,7 +141,8 @@ export const Compare = ({ plans }: CompareProps) => {
               <span>
                 <span className="block font-semibold">{plan.title}</span>
                 <span className="mt-1 block text-sm text-slate-500">
-                  {plan.city} · {calculateWorthScore(plan)} 分
+                  {plan.city} · {calculateWorthScore(plan)} 分 ·{" "}
+                  {formatCurrency(calculateTotalCost(plan))}
                 </span>
               </span>
             </label>
@@ -107,7 +167,7 @@ export const Compare = ({ plans }: CompareProps) => {
       <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-soft">
         {selectedPlans.length ? (
           <div className="overflow-x-auto">
-            <table className="min-w-[760px] w-full border-collapse text-left text-sm">
+            <table className="w-full min-w-[820px] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
                   <th className="w-36 px-4 py-3 font-semibold text-slate-600">项目</th>

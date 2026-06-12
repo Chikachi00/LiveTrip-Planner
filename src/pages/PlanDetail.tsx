@@ -1,12 +1,20 @@
-import { ArrowLeft, CalendarClock, CheckCircle2, MapPin, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  CalendarClock,
+  Edit3,
+  MapPin,
+  Trash2,
+  WalletCards,
+} from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { BudgetBreakdown } from "../components/BudgetBreakdown";
+import { ScoreBreakdown } from "../components/ScoreBreakdown";
 import { ScoreRing } from "../components/ScoreRing";
+import { TripTimeline } from "../components/TripTimeline";
 import type { TripPlan } from "../types";
 import {
   calculateTotalCost,
-  calculateWorthScore,
-  getWorthAdvice,
+  calculateWorthScoreDetails,
 } from "../utils/calculations";
 import { formatCurrency, formatDate } from "../utils/format";
 
@@ -34,19 +42,17 @@ export const PlanDetail = ({ plans, onDelete }: PlanDetailProps) => {
     );
   }
 
-  const score = calculateWorthScore(plan);
-  const timeline = [
-    `确认 ${formatDate(plan.date)} 的请假、签证或证件安排。`,
-    `把交通和酒店锁定在 ${formatCurrency(
-      plan.transportCost + plan.hotelCost,
-    )} 左右。`,
-    `提前查看 ${plan.venue} 入场口、物贩区和退场动线。`,
-    plan.fatigue >= 7
-      ? "给第二天留出恢复时间，减少连续转场。"
-      : "行程疲劳可控，可以加入轻量城市散步。",
-  ];
+  const scoreResult = calculateWorthScoreDetails(plan);
 
   const handleDelete = () => {
+    const confirmed = window.confirm(
+      `确定删除「${plan.title}」吗？删除后将从本地计划中移除。`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
     onDelete(plan.id);
     navigate("/");
   };
@@ -72,37 +78,55 @@ export const PlanDetail = ({ plans, onDelete }: PlanDetailProps) => {
               <MapPin size={16} className="text-coral" />
               {plan.city} · {plan.venue}
             </span>
+            <span className="inline-flex items-center gap-2">
+              <WalletCards size={16} className="text-sun" />
+              {formatCurrency(calculateTotalCost(plan))}
+            </span>
           </p>
         </div>
-        <button
-          type="button"
-          onClick={handleDelete}
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-4 text-sm font-semibold text-red-600 transition hover:bg-red-50"
-        >
-          <Trash2 size={16} />
-          删除
-        </button>
+
+        <div className="flex flex-wrap gap-2">
+          <Link
+            to={`/plans/${plan.id}/edit`}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-ink transition hover:border-flight/40 hover:text-flight"
+          >
+            <Edit3 size={16} />
+            编辑
+          </Link>
+          <button
+            type="button"
+            onClick={handleDelete}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-4 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+          >
+            <Trash2 size={16} />
+            删除
+          </button>
+        </div>
       </div>
 
-      <section className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
+      <section className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
         <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-soft">
-          <div className="flex items-center gap-5">
-            <ScoreRing score={score} />
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+            <ScoreRing score={scoreResult.finalScore} />
             <div>
               <p className="text-sm font-medium text-slate-500">值得去指数</p>
-              <h2 className="mt-1 text-2xl font-semibold">{score}/100</h2>
+              <h2 className="mt-1 text-2xl font-semibold">
+                {scoreResult.finalScore}/100
+              </h2>
               <p className="mt-3 text-sm leading-6 text-slate-600">
-                {getWorthAdvice(score)}
+                {scoreResult.advice}
               </p>
             </div>
           </div>
 
-          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
             {[
               ["喜欢", plan.preference],
               ["稀有", plan.rarity],
               ["疲劳", plan.fatigue],
               ["座位", plan.seatSatisfaction],
+              ["安静", plan.hotelQuietness],
+              ["后悔风险", plan.regretRisk],
             ].map(([label, value]) => (
               <div key={label} className="rounded-lg bg-slate-50 p-3">
                 <p className="text-xs text-slate-500">{label}</p>
@@ -112,7 +136,12 @@ export const PlanDetail = ({ plans, onDelete }: PlanDetailProps) => {
           </div>
         </div>
 
+        <ScoreBreakdown result={scoreResult} />
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
         <BudgetBreakdown plan={plan} />
+        <TripTimeline plan={plan} />
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[1fr_1fr]">
@@ -121,49 +150,28 @@ export const PlanDetail = ({ plans, onDelete }: PlanDetailProps) => {
           <div className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
             <p>
               当前总预算为 {formatCurrency(calculateTotalCost(plan))}。如果想降低成本，
-              优先检查交通和酒店，它们通常决定远征预算的上限。
+              优先检查交通、酒店和本地交通，它们通常决定远征预算上限。
             </p>
             <p>
               {plan.seatSatisfaction >= 8
                 ? "座位满意度较高，这场更适合作为主力场次。"
-                : "座位满意度还有提升空间，可以继续关注换票或追加抽选。"}
+                : "座位满意度还有提升空间，可以继续关注换票、升级或更适合的场次。"}
             </p>
             <p>
-              {plan.rarity >= 8
-                ? "稀有度较高，错过后短期内可能不容易复现。"
-                : "稀有度中等，适合和其他场次一起比较后再决定。"}
+              {plan.hotelQuietness >= 8
+                ? "住宿休息质量预期不错，连续远征时会更稳。"
+                : "酒店安静程度偏一般，建议确认隔音、交通距离和退房时间。"}
             </p>
           </div>
         </div>
 
         <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-soft">
-          <h2 className="text-lg font-semibold">行程时间线</h2>
-          <ol className="mt-4 space-y-4">
-            {timeline.map((item, index) => (
-              <li key={item} className="flex gap-3 text-sm text-slate-600">
-                <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-mist text-moss">
-                  <CheckCircle2 size={15} />
-                </span>
-                <span>
-                  <span className="block text-xs font-semibold text-slate-400">
-                    Step {index + 1}
-                  </span>
-                  {item}
-                </span>
-              </li>
-            ))}
-          </ol>
+          <h2 className="text-lg font-semibold">备注</h2>
+          <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-slate-600">
+            {plan.notes || "还没有备注。可以在编辑页补充抽票、同行、请假和换乘提醒。"}
+          </p>
         </div>
       </section>
-
-      {plan.notes ? (
-        <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-soft">
-          <h2 className="text-lg font-semibold">备注</h2>
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-600">
-            {plan.notes}
-          </p>
-        </section>
-      ) : null}
     </div>
   );
 };

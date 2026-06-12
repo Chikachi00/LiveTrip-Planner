@@ -3,10 +3,11 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { Compare } from "./pages/Compare";
 import { Dashboard } from "./pages/Dashboard";
+import { EditPlan } from "./pages/EditPlan";
 import { NewPlan } from "./pages/NewPlan";
 import { PlanDetail } from "./pages/PlanDetail";
-import type { TripPlan } from "./types";
-import { getStoredPlans, removePlan, savePlans, upsertPlan } from "./utils/storage";
+import type { TripPlan, TripPlanInput } from "./types";
+import { getStoredPlans, removePlan, updatePlan, upsertPlan } from "./utils/storage";
 
 export const App = () => {
   const [plans, setPlans] = useState<TripPlan[]>(() => getStoredPlans());
@@ -23,7 +24,11 @@ export const App = () => {
 
   const handleDelete = (id: string) => {
     const next = removePlan(id);
-    savePlans(next);
+    setPlans(next);
+  };
+
+  const handleUpdate = (id: string, value: TripPlanInput) => {
+    const next = updatePlan(id, value);
     setPlans(next);
   };
 
@@ -36,6 +41,10 @@ export const App = () => {
           <Route
             path="/plans/:id"
             element={<PlanDetail plans={plans} onDelete={handleDelete} />}
+          />
+          <Route
+            path="/plans/:id/edit"
+            element={<EditPlan plans={plans} onUpdate={handleUpdate} />}
           />
           <Route path="/compare" element={<Compare plans={sortedPlans} />} />
         </Route>

@@ -5,6 +5,16 @@ const STORAGE_KEY = "livetrip-planner:plans";
 
 const canUseLocalStorage = () => typeof window !== "undefined" && window.localStorage;
 
+export const normalizePlan = (plan: TripPlan): TripPlan => {
+  return {
+    ...plan,
+    serviceFee: plan.serviceFee ?? 0,
+    localTransitCost: plan.localTransitCost ?? 0,
+    hotelQuietness: plan.hotelQuietness ?? 7,
+    regretRisk: plan.regretRisk ?? 4,
+  };
+};
+
 export const getStoredPlans = (): TripPlan[] => {
   if (!canUseLocalStorage()) {
     return samplePlans;
@@ -19,7 +29,7 @@ export const getStoredPlans = (): TripPlan[] => {
 
   try {
     const parsed = JSON.parse(raw) as TripPlan[];
-    return Array.isArray(parsed) ? parsed : samplePlans;
+    return Array.isArray(parsed) ? parsed.map(normalizePlan) : samplePlans;
   } catch {
     return samplePlans;
   }
@@ -38,10 +48,33 @@ export const createPlan = (input: TripPlanInput): TripPlan => {
 
   return {
     ...input,
+    serviceFee: input.serviceFee ?? 0,
+    localTransitCost: input.localTransitCost ?? 0,
+    hotelQuietness: input.hotelQuietness ?? 7,
+    regretRisk: input.regretRisk ?? 4,
     id: crypto.randomUUID(),
     createdAt: now,
     updatedAt: now,
   };
+};
+
+export const updatePlan = (id: string, input: TripPlanInput) => {
+  const plans = getStoredPlans();
+  const now = new Date().toISOString();
+  const next = plans.map((plan) =>
+    plan.id === id
+      ? normalizePlan({
+          ...plan,
+          ...input,
+          id,
+          createdAt: plan.createdAt,
+          updatedAt: now,
+        })
+      : plan,
+  );
+
+  savePlans(next);
+  return next;
 };
 
 export const upsertPlan = (plan: TripPlan) => {
