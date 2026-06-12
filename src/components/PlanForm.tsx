@@ -1,7 +1,8 @@
 import { ArrowLeft, Building2, Save, Search } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { venues } from "../data/venues";
+import { getAllVenues, type Venue } from "../data/venues";
+import { createVenueFromPlanText } from "../lib/customVenues";
 import type { TripPlanInput } from "../types";
 import { RatingInput } from "./RatingInput";
 
@@ -72,6 +73,8 @@ type PlanFormProps = {
   title: string;
   subtitle: string;
   submitLabel: string;
+  customVenues?: Venue[];
+  onCreateCustomVenue?: (venue: Venue) => void;
   onSubmit: (value: TripPlanInput) => void;
 };
 
@@ -80,6 +83,8 @@ export const PlanForm = ({
   title,
   subtitle,
   submitLabel,
+  customVenues = [],
+  onCreateCustomVenue,
   onSubmit,
 }: PlanFormProps) => {
   const [form, setForm] = useState<TripPlanInput>({
@@ -88,19 +93,21 @@ export const PlanForm = ({
   });
   const [venueSearch, setVenueSearch] = useState("");
 
+  const allVenues = useMemo(() => getAllVenues(customVenues), [customVenues]);
+
   const filteredVenues = useMemo(() => {
     const query = venueSearch.trim().toLowerCase();
 
     if (!query) {
-      return venues;
+      return allVenues;
     }
 
-    return venues.filter((venue) =>
+    return allVenues.filter((venue) =>
       [venue.name, venue.nameJa, venue.city, venue.country, venue.area]
         .filter(Boolean)
         .some((value) => value!.toLowerCase().includes(query)),
     );
-  }, [venueSearch]);
+  }, [allVenues, venueSearch]);
 
   const updateField = <Key extends keyof TripPlanInput>(
     key: Key,
@@ -115,7 +122,7 @@ export const PlanForm = ({
       return;
     }
 
-    const selected = venues.find((venue) => venue.id === venueId);
+    const selected = allVenues.find((venue) => venue.id === venueId);
 
     if (!selected) {
       return;
@@ -148,7 +155,33 @@ export const PlanForm = ({
     });
   };
 
-  const selectedVenue = venues.find((venue) => venue.id === form.venueId);
+  const selectedVenue = allVenues.find((venue) => venue.id === form.venueId);
+  const typedVenueKnown = allVenues.some(
+    (venue) =>
+      venue.name.trim().toLowerCase() === form.venue.trim().toLowerCase() ||
+      venue.nameJa?.trim().toLowerCase() === form.venue.trim().toLowerCase(),
+  );
+  const canSaveTypedVenue =
+    onCreateCustomVenue &&
+    form.city.trim() &&
+    form.venue.trim() &&
+    !form.venueId &&
+    !typedVenueKnown;
+
+  const saveTypedVenue = () => {
+    if (!canSaveTypedVenue) {
+      return;
+    }
+
+    const venue = createVenueFromPlanText(form.city, form.venue);
+    onCreateCustomVenue(venue);
+    setForm((current) => ({
+      ...current,
+      venueId: venue.id,
+      city: venue.city,
+      venue: venue.name,
+    }));
+  };
 
   return (
     <form onSubmit={handleSubmit} className="mx-auto max-w-6xl space-y-6">
@@ -249,6 +282,7 @@ export const PlanForm = ({
                   {filteredVenues.map((venue) => (
                     <option key={venue.id} value={venue.id}>
                       {venue.name} · {venue.city} · {venue.country}
+                      {venue.id.startsWith("custom_") ? " · 自定义" : " · 内置"}
                     </option>
                   ))}
                 </select>
@@ -258,6 +292,15 @@ export const PlanForm = ({
                   已收录场馆 · 散场风险 {selectedVenue.crowdRiskScore}/5 · 推荐住宿区域{" "}
                   {selectedVenue.recommendedHotelAreas.length} 个
                 </p>
+              ) : null}
+              {canSaveTypedVenue ? (
+                <button
+                  type="button"
+                  onClick={saveTypedVenue}
+                  className="mt-3 inline-flex h-9 items-center rounded-lg border border-flight/30 bg-white px-3 text-xs font-semibold text-flight transition hover:bg-blue-50"
+                >
+                  保存为自定义场馆
+                </button>
               ) : null}
             </div>
 

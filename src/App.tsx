@@ -6,11 +6,21 @@ import { Dashboard } from "./pages/Dashboard";
 import { EditPlan } from "./pages/EditPlan";
 import { NewPlan } from "./pages/NewPlan";
 import { PlanDetail } from "./pages/PlanDetail";
+import { Settings } from "./pages/Settings";
+import { Venues } from "./pages/Venues";
 import type { TripPlan, TripPlanInput } from "./types";
 import {
   appendMissingSamplePlans,
   importPlansFromJson,
 } from "./utils/dataManagement";
+import {
+  getStoredCustomVenues,
+  removeCustomVenue,
+  saveCustomVenues,
+  updateCustomVenue,
+  type VenueInput,
+} from "./lib/customVenues";
+import type { Venue } from "./data/venues";
 import {
   getStoredPlans,
   normalizePlan,
@@ -27,6 +37,9 @@ const getUpdatedTime = (plan: TripPlan) => {
 
 export const App = () => {
   const [plans, setPlans] = useState<TripPlan[]>(() => getStoredPlans());
+  const [customVenues, setCustomVenues] = useState<Venue[]>(() =>
+    getStoredCustomVenues(),
+  );
 
   const sortedPlans = useMemo(
     () => [...plans].sort((a, b) => a.date.localeCompare(b.date)),
@@ -49,10 +62,15 @@ export const App = () => {
   };
 
   const handleImportJson = (raw: string) => {
-    const result = importPlansFromJson(raw, plans);
+    const result = importPlansFromJson(raw, plans, customVenues);
     savePlans(result.plans);
+    saveCustomVenues(result.customVenues);
     setPlans(result.plans);
-    return result.importedCount;
+    setCustomVenues(result.customVenues);
+    return {
+      importedPlans: result.importedCount,
+      importedCustomVenues: result.importedCustomVenueCount,
+    };
   };
 
   const handleLoadSamples = () => {
@@ -64,7 +82,27 @@ export const App = () => {
 
   const handleClearAll = () => {
     savePlans([]);
+    saveCustomVenues([]);
     setPlans([]);
+    setCustomVenues([]);
+  };
+
+  const handleCreateCustomVenue = (venue: Venue) => {
+    const next = [venue, ...customVenues.filter((item) => item.id !== venue.id)];
+    saveCustomVenues(next);
+    setCustomVenues(next);
+  };
+
+  const handleUpdateCustomVenue = (id: string, value: VenueInput) => {
+    const next = updateCustomVenue(customVenues, id, value);
+    saveCustomVenues(next);
+    setCustomVenues(next);
+  };
+
+  const handleDeleteCustomVenue = (id: string) => {
+    const next = removeCustomVenue(customVenues, id);
+    saveCustomVenues(next);
+    setCustomVenues(next);
   };
 
   const handlePullCloudPlans = (cloudPlans: TripPlan[]) => {
@@ -123,6 +161,7 @@ export const App = () => {
             element={
               <Dashboard
                 plans={sortedPlans}
+                customVenues={customVenues}
                 onImportJson={handleImportJson}
                 onLoadSamples={handleLoadSamples}
                 onClearAll={handleClearAll}
@@ -130,16 +169,65 @@ export const App = () => {
               />
             }
           />
-          <Route path="/new" element={<NewPlan onCreate={handleCreate} />} />
+          <Route
+            path="/new"
+            element={
+              <NewPlan
+                customVenues={customVenues}
+                onCreateCustomVenue={handleCreateCustomVenue}
+                onCreate={handleCreate}
+              />
+            }
+          />
           <Route
             path="/plans/:id"
-            element={<PlanDetail plans={plans} onDelete={handleDelete} />}
+            element={
+              <PlanDetail
+                plans={plans}
+                customVenues={customVenues}
+                onDelete={handleDelete}
+              />
+            }
           />
           <Route
             path="/plans/:id/edit"
-            element={<EditPlan plans={plans} onUpdate={handleUpdate} />}
+            element={
+              <EditPlan
+                plans={plans}
+                customVenues={customVenues}
+                onCreateCustomVenue={handleCreateCustomVenue}
+                onUpdate={handleUpdate}
+              />
+            }
           />
-          <Route path="/compare" element={<Compare plans={sortedPlans} />} />
+          <Route
+            path="/compare"
+            element={<Compare plans={sortedPlans} customVenues={customVenues} />}
+          />
+          <Route
+            path="/venues"
+            element={
+              <Venues
+                customVenues={customVenues}
+                onCreate={handleCreateCustomVenue}
+                onUpdate={handleUpdateCustomVenue}
+                onDelete={handleDeleteCustomVenue}
+              />
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <Settings
+                plans={plans}
+                customVenues={customVenues}
+                onImportJson={handleImportJson}
+                onLoadSamples={handleLoadSamples}
+                onClearAll={handleClearAll}
+                onPullCloudPlans={handlePullCloudPlans}
+              />
+            }
+          />
         </Route>
       </Routes>
     </BrowserRouter>

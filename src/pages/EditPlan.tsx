@@ -1,13 +1,21 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { PlanForm } from "../components/PlanForm";
+import type { Venue } from "../data/venues";
 import type { TripPlan, TripPlanInput } from "../types";
 
 type EditPlanProps = {
   plans: TripPlan[];
+  customVenues: Venue[];
+  onCreateCustomVenue: (venue: Venue) => void;
   onUpdate: (id: string, value: TripPlanInput) => void;
 };
 
-export const EditPlan = ({ plans, onUpdate }: EditPlanProps) => {
+export const EditPlan = ({
+  plans,
+  customVenues,
+  onCreateCustomVenue,
+  onUpdate,
+}: EditPlanProps) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const plan = plans.find((item) => item.id === id);
@@ -34,6 +42,8 @@ export const EditPlan = ({ plans, onUpdate }: EditPlanProps) => {
       title={`编辑 ${plan.title}`}
       subtitle="修改后会覆盖原计划，不会新建重复数据。"
       submitLabel="保存修改"
+      customVenues={customVenues}
+      onCreateCustomVenue={onCreateCustomVenue}
       onSubmit={(value) => {
         onUpdate(plan.id, value);
         navigate(`/plans/${plan.id}`);

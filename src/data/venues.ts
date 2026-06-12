@@ -339,22 +339,27 @@ const normalize = (value?: string) =>
     .replace(/[·・\s\-_/（）()]/g, "")
     .trim();
 
-export const findVenueById = (id?: string) => {
+export const getAllVenues = (customVenues: Venue[] = []) => [
+  ...venues,
+  ...customVenues,
+];
+
+export const findVenueById = (id?: string, customVenues: Venue[] = []) => {
   if (!id) {
     return undefined;
   }
 
-  return venues.find((venue) => venue.id === id);
+  return getAllVenues(customVenues).find((venue) => venue.id === id);
 };
 
-export const findVenueByName = (name?: string) => {
+export const findVenueByName = (name?: string, customVenues: Venue[] = []) => {
   const target = normalize(name);
 
   if (!target) {
     return undefined;
   }
 
-  return venues.find((venue) => {
+  return getAllVenues(customVenues).find((venue) => {
     const names = [venue.name, venue.nameJa, `${venue.city}${venue.name}`];
     return names.some((candidate) => {
       const normalized = normalize(candidate);
@@ -363,8 +368,11 @@ export const findVenueByName = (name?: string) => {
   });
 };
 
-export const findVenueForPlan = (plan: Pick<TripPlan, "venueId" | "venue">) => {
-  return findVenueById(plan.venueId) ?? findVenueByName(plan.venue);
+export const findVenueForPlan = (
+  plan: Pick<TripPlan, "venueId" | "venue">,
+  customVenues: Venue[] = [],
+) => {
+  return findVenueById(plan.venueId, customVenues) ?? findVenueByName(plan.venue, customVenues);
 };
 
 export const formatVenueType = (type: Venue["venueType"]) => {

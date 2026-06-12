@@ -3,13 +3,18 @@ import { Link } from "react-router-dom";
 import { CloudSyncPanel } from "../components/CloudSyncPanel";
 import { DataManager } from "../components/DataManager";
 import { PlanCard } from "../components/PlanCard";
+import type { Venue } from "../data/venues";
 import type { TripPlan } from "../types";
 import { calculateTotalCost, calculateWorthScore } from "../utils/calculations";
 import { formatCurrency, formatDate } from "../utils/format";
 
 type DashboardProps = {
   plans: TripPlan[];
-  onImportJson: (raw: string) => number;
+  customVenues: Venue[];
+  onImportJson: (raw: string) => {
+    importedPlans: number;
+    importedCustomVenues: number;
+  };
   onLoadSamples: () => number;
   onClearAll: () => void;
   onPullCloudPlans: (cloudPlans: TripPlan[]) => {
@@ -22,6 +27,7 @@ type DashboardProps = {
 
 export const Dashboard = ({
   plans,
+  customVenues,
   onImportJson,
   onLoadSamples,
   onClearAll,
@@ -131,7 +137,7 @@ export const Dashboard = ({
         {plans.length ? (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {plans.map((plan) => (
-              <PlanCard key={plan.id} plan={plan} />
+              <PlanCard key={plan.id} plan={plan} customVenues={customVenues} />
             ))}
           </div>
         ) : (
@@ -164,6 +170,7 @@ export const Dashboard = ({
 
       <DataManager
         plans={plans}
+        customVenues={customVenues}
         onImportJson={onImportJson}
         onLoadSamples={onLoadSamples}
         onClearAll={onClearAll}

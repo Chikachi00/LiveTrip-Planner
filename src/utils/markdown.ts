@@ -1,5 +1,6 @@
 import { buildTimeline } from "../components/TripTimeline";
-import { findVenueForPlan } from "../data/venues";
+import { findCityGuideForPlan } from "../data/cityGuides";
+import { findVenueForPlan, type Venue } from "../data/venues";
 import {
   generateTripAdvice,
   getRecommendationLabel,
@@ -10,6 +11,7 @@ import {
   calculateWorthScoreDetails,
 } from "./calculations";
 import { formatCurrency, formatDate } from "./format";
+import { createMapSearchLinks } from "./mapLinks";
 
 const safe = (value: unknown, fallback = "未填写") => {
   if (value === undefined || value === null || value === "") {
@@ -35,11 +37,17 @@ export const createMarkdownFileName = (plan: TripPlan) => {
   return `live-trip-${slug || "plan"}-${plan.date}.md`;
 };
 
-export const generateTripMarkdown = (plan: TripPlan) => {
+export const generateTripMarkdown = (plan: TripPlan, customVenues: Venue[] = []) => {
   const score = calculateWorthScoreDetails(plan);
-  const advice = generateTripAdvice(plan);
+  const advice = generateTripAdvice(plan, customVenues);
   const timeline = buildTimeline(plan);
-  const venue = findVenueForPlan(plan);
+  const venue = findVenueForPlan(plan, customVenues);
+  const cityGuide = findCityGuideForPlan(plan);
+  const mapLinks = createMapSearchLinks({
+    name: venue?.name ?? plan.venue,
+    city: venue?.city ?? plan.city,
+    country: venue?.country,
+  });
   const budgetRows = [
     row("票价", formatCurrency(plan.ticketPrice)),
     row("手续费", formatCurrency(plan.serviceFee)),
@@ -80,6 +88,29 @@ ${row("当天往返难度", `${venue.dayTripDifficultyScore}/5`)}
 - 交通建议：${venue.transportAdvice}
 - 散场建议：${venue.leavingAdvice}
 - 住宿建议：${venue.hotelAdvice}
+
+### 外部地图
+
+${list(mapLinks.map((link) => `[${link.label}](${link.href})`))}
+`
+    : "";
+
+  const cityGuideSection = cityGuide
+    ? `
+## 城市建议 / City Guide
+
+| 项目 | 内容 |
+| --- | --- |
+${row("城市", `${cityGuide.city} / ${cityGuide.country}`)}
+${row("推荐住宿区域", cityGuide.recommendedAreas.join("、"))}
+${row("性价比区域", cityGuide.budgetAreas.join("、"))}
+${row("交通方便区域", cityGuide.convenientAreas.join("、"))}
+${row("不太推荐区域", cityGuide.avoidAreas.join("、"))}
+
+- 交通提示：${cityGuide.transportNotes}
+- 酒店提示：${cityGuide.hotelNotes}
+- 夜间返程提示：${cityGuide.lateNightNotes}
+- 演出远征提示：${cityGuide.eventTips}
 `
     : "";
 
@@ -141,6 +172,7 @@ ${budgetRows}
 ${breakdown}
 
 ${venueSection}
+${cityGuideSection}
 ## 智能建议 / Smart Advice
 
 - 推荐等级：${getRecommendationLabel(advice.recommendationLevel)}

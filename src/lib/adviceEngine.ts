@@ -1,4 +1,5 @@
-import { findVenueForPlan } from "../data/venues";
+import { findCityGuideForPlan } from "../data/cityGuides";
+import { findVenueForPlan, type Venue } from "../data/venues";
 import type { TripPlan } from "../types";
 import { calculateTotalCost, calculateWorthScoreDetails } from "../utils/calculations";
 import { formatCurrency } from "../utils/format";
@@ -97,7 +98,10 @@ export const getRecommendationLabel = (level: RecommendationLevel) => {
   return labels[level];
 };
 
-export const generateTripAdvice = (plan: TripPlan): TripAdviceResult => {
+export const generateTripAdvice = (
+  plan: TripPlan,
+  customVenues: Venue[] = [],
+): TripAdviceResult => {
   const score = calculateWorthScoreDetails(plan).finalScore;
   const totalCost = calculateTotalCost(plan);
   const durationHours = parseDurationHours(plan.oneWayDuration);
@@ -105,7 +109,8 @@ export const generateTripAdvice = (plan: TripPlan): TripAdviceResult => {
   const transportMode = normalizeText(plan.transportMode);
   const longFlight = transportMode.includes("飞机") || transportMode.includes("flight");
   const noHotelForTrip = (plan.hotelNights ?? 0) === 0 && isDifferentCity(plan);
-  const venue = findVenueForPlan(plan);
+  const venue = findVenueForPlan(plan, customVenues);
+  const cityGuide = findCityGuideForPlan(plan);
 
   const recommendationLevel: RecommendationLevel =
     score >= 85 ? "strong_go" : score >= 70 ? "go" : score >= 55 ? "consider" : "skip";
@@ -241,6 +246,35 @@ export const generateTripAdvice = (plan: TripPlan): TripAdviceResult => {
       venue.crowdRiskScore >= 4
     ) {
       risks.push("通勤时间偏长且场馆散场风险较高，演出结束后的返程压力会被放大。");
+    }
+  }
+
+  if (cityGuide) {
+    if (!plan.hotelArea?.trim()) {
+      hotelAdvice.push(
+        `酒店区域未填写，可以先参考 ${cityGuide.recommendedAreas.slice(0, 4).join("、")}。`,
+      );
+    }
+
+    if (plan.hotelArea?.trim() && areaMatches(plan.hotelArea, cityGuide.avoidAreas)) {
+      risks.push("当前酒店区域接近城市模板中的不推荐区域，建议复核通勤、安全和夜间便利性。");
+    }
+
+    if (plan.showEndTime && plan.showEndTime >= "21:00") {
+      travelAdvice.push(cityGuide.lateNightNotes);
+    }
+
+    if (/住宿.*(难|贵)|涨价|房量|提前/.test(cityGuide.hotelNotes)) {
+      hotelAdvice.push("该城市演出期间住宿波动可能较明显，建议优先选择可取消房型。");
+    }
+
+    const venueAreas = venue?.recommendedHotelAreas ?? [];
+    const combinedAreas = [...venueAreas, ...cityGuide.recommendedAreas].filter(
+      (area, index, array) => array.indexOf(area) === index,
+    );
+
+    if (combinedAreas.length) {
+      hotelAdvice.push(`综合场馆和城市建议，可优先比较 ${combinedAreas.slice(0, 4).join("、")}。`);
     }
   }
 

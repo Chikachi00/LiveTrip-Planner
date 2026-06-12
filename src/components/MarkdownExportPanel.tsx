@@ -1,5 +1,6 @@
 import { Check, Clipboard, Download } from "lucide-react";
 import { useMemo, useState } from "react";
+import type { Venue } from "../data/venues";
 import type { TripPlan } from "../types";
 import {
   createMarkdownFileName,
@@ -9,12 +10,19 @@ import {
 
 type MarkdownExportPanelProps = {
   plan: TripPlan;
+  customVenues?: Venue[];
 };
 
-export const MarkdownExportPanel = ({ plan }: MarkdownExportPanelProps) => {
+export const MarkdownExportPanel = ({
+  plan,
+  customVenues = [],
+}: MarkdownExportPanelProps) => {
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(false);
-  const markdown = useMemo(() => generateTripMarkdown(plan), [plan]);
+  const markdown = useMemo(
+    () => generateTripMarkdown(plan, customVenues),
+    [customVenues, plan],
+  );
   const fileName = createMarkdownFileName(plan);
 
   const copyMarkdown = async () => {
@@ -34,7 +42,7 @@ export const MarkdownExportPanel = ({ plan }: MarkdownExportPanelProps) => {
         <div>
           <h2 className="text-lg font-semibold">Markdown 行程导出</h2>
           <p className="mt-1 text-sm leading-6 text-slate-500">
-            生成可复制、可下载的行程文档，适合放进 Notion、GitHub 或旅行备忘。
+            生成可复制、可下载的行程文档，包含预算、智能建议、场馆提示、城市建议和地图搜索链接。
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

@@ -1,6 +1,6 @@
 import { Building2, Calendar, MapPin, WalletCards } from "lucide-react";
 import { Link } from "react-router-dom";
-import { findVenueForPlan } from "../data/venues";
+import { findVenueForPlan, type Venue } from "../data/venues";
 import type { TripPlan } from "../types";
 import { calculateTotalCost, calculateWorthScoreDetails } from "../utils/calculations";
 import { formatCurrency, formatDate } from "../utils/format";
@@ -8,12 +8,13 @@ import { ScoreRing } from "./ScoreRing";
 
 type PlanCardProps = {
   plan: TripPlan;
+  customVenues?: Venue[];
 };
 
-export const PlanCard = ({ plan }: PlanCardProps) => {
+export const PlanCard = ({ plan, customVenues = [] }: PlanCardProps) => {
   const total = calculateTotalCost(plan);
   const score = calculateWorthScoreDetails(plan);
-  const venue = findVenueForPlan(plan);
+  const venue = findVenueForPlan(plan, customVenues);
 
   return (
     <Link

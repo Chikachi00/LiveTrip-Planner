@@ -1,4 +1,6 @@
 import { samplePlans } from "../data/samplePlans";
+import type { Venue } from "../data/venues";
+import { normalizeVenue } from "../lib/customVenues";
 import type { TripPlan } from "../types";
 import { normalizePlan } from "./storage";
 
@@ -16,11 +18,16 @@ const getNumber = (record: Record<string, unknown>, key: string, fallback = 0) =
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 };
 
+const getStringArray = (record: Record<string, unknown>, key: string) => {
+  const value = record[key];
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+};
+
 const createId = () => crypto.randomUUID();
 
-const ensureUniqueId = (id: string, usedIds: Set<string>) => {
+const ensureUniqueId = (id: string, usedIds: Set<string>, prefix = "") => {
   if (!id || usedIds.has(id)) {
-    const newId = createId();
+    const newId = `${prefix}${createId()}`;
     usedIds.add(newId);
     return newId;
   }
@@ -50,6 +57,7 @@ const parsePlanRecord = (
     date,
     city: getString(record, "city", "未填写"),
     venue: getString(record, "venue", "未填写"),
+    venueId: getString(record, "venueId"),
     seatType: getString(record, "seatType"),
     departureCity: getString(record, "departureCity"),
     transportMode: getString(record, "transportMode"),
@@ -85,13 +93,61 @@ const parsePlanRecord = (
   });
 };
 
-export const createBackupJson = (plans: TripPlan[]) => {
+const parseVenueRecord = (
+  record: Record<string, unknown>,
+  usedIds: Set<string>,
+): Venue | null => {
+  const name = getString(record, "name").trim();
+  const city = getString(record, "city").trim();
+
+  if (!name || !city) {
+    return null;
+  }
+
+  const venueType = getString(record, "venueType", "other") as Venue["venueType"];
+  const allowedTypes: Venue["venueType"][] = [
+    "arena",
+    "stadium",
+    "hall",
+    "livehouse",
+    "exhibition",
+    "theater",
+    "other",
+  ];
+
+  return normalizeVenue({
+    id: ensureUniqueId(getString(record, "id"), usedIds, "custom_"),
+    name,
+    nameJa: getString(record, "nameJa"),
+    city,
+    country: getString(record, "country"),
+    area: getString(record, "area", city),
+    nearestStations: getStringArray(record, "nearestStations"),
+    capacity: getNumber(record, "capacity", 0) || undefined,
+    venueType: allowedTypes.includes(venueType) ? venueType : "other",
+    accessScore: getNumber(record, "accessScore", 3),
+    crowdRiskScore: getNumber(record, "crowdRiskScore", 3),
+    hotelDifficultyScore: getNumber(record, "hotelDifficultyScore", 3),
+    dayTripDifficultyScore: getNumber(record, "dayTripDifficultyScore", 3),
+    recommendedHotelAreas: getStringArray(record, "recommendedHotelAreas"),
+    avoidHotelAreas: getStringArray(record, "avoidHotelAreas"),
+    arrivalAdvice: getString(record, "arrivalAdvice"),
+    leavingAdvice: getString(record, "leavingAdvice"),
+    hotelAdvice: getString(record, "hotelAdvice"),
+    transportAdvice: getString(record, "transportAdvice"),
+    notes: getString(record, "notes"),
+  });
+};
+
+export const createBackupJson = (plans: TripPlan[], customVenues: Venue[] = []) => {
   return JSON.stringify(
     {
       app: "LiveTrip Planner",
-      version: "0.3",
+      version: "0.7",
       exportedAt: new Date().toISOString(),
-      plans,
+      tripPlans: plans,
+      customVenues,
+      plans, // Backward-friendly alias for older imports.
     },
     null,
     2,
@@ -108,27 +164,39 @@ export const downloadJson = (content: string, fileName: string) => {
   URL.revokeObjectURL(url);
 };
 
-export const importPlansFromJson = (raw: string, existingPlans: TripPlan[]) => {
+export const importPlansFromJson = (
+  raw: string,
+  existingPlans: TripPlan[],
+  existingCustomVenues: Venue[] = [],
+) => {
   const parsed = JSON.parse(raw) as unknown;
-  const candidates = Array.isArray(parsed)
+  const planCandidates = Array.isArray(parsed)
     ? parsed
-    : isRecord(parsed) && Array.isArray(parsed.plans)
-      ? parsed.plans
-      : [];
+    : isRecord(parsed) && Array.isArray(parsed.tripPlans)
+      ? parsed.tripPlans
+      : isRecord(parsed) && Array.isArray(parsed.plans)
+        ? parsed.plans
+        : [];
+  const venueCandidates =
+    isRecord(parsed) && Array.isArray(parsed.customVenues) ? parsed.customVenues : [];
 
-  if (!candidates.length) {
-    return { plans: existingPlans, importedCount: 0 };
-  }
-
-  const usedIds = new Set(existingPlans.map((plan) => plan.id));
-  const imported = candidates
+  const usedPlanIds = new Set(existingPlans.map((plan) => plan.id));
+  const importedPlans = planCandidates
     .filter(isRecord)
-    .map((record) => parsePlanRecord(record, usedIds))
+    .map((record) => parsePlanRecord(record, usedPlanIds))
     .filter((plan): plan is TripPlan => Boolean(plan));
 
+  const usedVenueIds = new Set(existingCustomVenues.map((venue) => venue.id));
+  const importedCustomVenues = venueCandidates
+    .filter(isRecord)
+    .map((record) => parseVenueRecord(record, usedVenueIds))
+    .filter((venue): venue is Venue => Boolean(venue));
+
   return {
-    plans: [...imported, ...existingPlans],
-    importedCount: imported.length,
+    plans: [...importedPlans, ...existingPlans],
+    customVenues: [...importedCustomVenues, ...existingCustomVenues],
+    importedCount: importedPlans.length,
+    importedCustomVenueCount: importedCustomVenues.length,
   };
 };
 

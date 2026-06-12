@@ -8,13 +8,15 @@ import {
 } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { BudgetBreakdown } from "../components/BudgetBreakdown";
+import { CityGuideCard } from "../components/CityGuideCard";
 import { MarkdownExportPanel } from "../components/MarkdownExportPanel";
 import { ScoreBreakdown } from "../components/ScoreBreakdown";
 import { ScoreRing } from "../components/ScoreRing";
 import { SmartAdvicePanel } from "../components/SmartAdvicePanel";
 import { TripTimeline } from "../components/TripTimeline";
 import { VenueInsightCard } from "../components/VenueInsightCard";
-import { findVenueForPlan } from "../data/venues";
+import { findCityGuideForPlan } from "../data/cityGuides";
+import { findVenueForPlan, type Venue } from "../data/venues";
 import { generateTripAdvice } from "../lib/adviceEngine";
 import type { TripPlan } from "../types";
 import {
@@ -22,13 +24,15 @@ import {
   calculateWorthScoreDetails,
 } from "../utils/calculations";
 import { formatCurrency, formatDate } from "../utils/format";
+import { createMapSearchLinks } from "../utils/mapLinks";
 
 type PlanDetailProps = {
   plans: TripPlan[];
+  customVenues: Venue[];
   onDelete: (id: string) => void;
 };
 
-export const PlanDetail = ({ plans, onDelete }: PlanDetailProps) => {
+export const PlanDetail = ({ plans, customVenues, onDelete }: PlanDetailProps) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const plan = plans.find((item) => item.id === id);
@@ -48,8 +52,14 @@ export const PlanDetail = ({ plans, onDelete }: PlanDetailProps) => {
   }
 
   const scoreResult = calculateWorthScoreDetails(plan);
-  const smartAdvice = generateTripAdvice(plan);
-  const venue = findVenueForPlan(plan);
+  const smartAdvice = generateTripAdvice(plan, customVenues);
+  const venue = findVenueForPlan(plan, customVenues);
+  const cityGuide = findCityGuideForPlan(plan);
+  const mapLinks = createMapSearchLinks({
+    name: venue?.name ?? plan.venue,
+    city: venue?.city ?? plan.city,
+    country: venue?.country,
+  });
 
   const handleDelete = () => {
     const confirmed = window.confirm(
@@ -90,6 +100,21 @@ export const PlanDetail = ({ plans, onDelete }: PlanDetailProps) => {
               {formatCurrency(calculateTotalCost(plan))}
             </span>
           </p>
+          {mapLinks.length ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {mapLinks.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:border-flight/40 hover:text-flight"
+                >
+                  {link.label}
+                </a>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -148,6 +173,8 @@ export const PlanDetail = ({ plans, onDelete }: PlanDetailProps) => {
 
       {venue ? <VenueInsightCard venue={venue} /> : null}
 
+      {cityGuide ? <CityGuideCard guide={cityGuide} /> : null}
+
       <SmartAdvicePanel advice={smartAdvice} />
 
       <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
@@ -155,7 +182,7 @@ export const PlanDetail = ({ plans, onDelete }: PlanDetailProps) => {
         <TripTimeline plan={plan} />
       </section>
 
-      <MarkdownExportPanel plan={plan} />
+      <MarkdownExportPanel plan={plan} customVenues={customVenues} />
 
       <section className="grid gap-4 lg:grid-cols-[1fr_1fr]">
         <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-soft">

@@ -1,7 +1,7 @@
 import { ArrowDownAZ, GitCompare, Plus, Trophy } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { findVenueForPlan } from "../data/venues";
+import { findVenueForPlan, type Venue } from "../data/venues";
 import { generateTripAdvice } from "../lib/adviceEngine";
 import type { TripPlan } from "../types";
 import { calculateTotalCost, calculateWorthScore } from "../utils/calculations";
@@ -9,6 +9,7 @@ import { formatCurrency, formatDate } from "../utils/format";
 
 type CompareProps = {
   plans: TripPlan[];
+  customVenues?: Venue[];
 };
 
 type SortKey = "worth" | "cost" | "date" | "preference" | "rarity";
@@ -24,31 +25,11 @@ const sortOptions: Array<{ key: SortKey; label: string }> = [
 const venueValue = (
   plan: TripPlan,
   key: "crowdRiskScore" | "hotelDifficultyScore" | "dayTripDifficultyScore",
+  customVenues: Venue[],
 ) => {
-  const venue = findVenueForPlan(plan);
+  const venue = findVenueForPlan(plan, customVenues);
   return venue ? `${venue[key]}/5` : "未收录";
 };
-
-const rows = [
-  ["日期", (plan: TripPlan) => formatDate(plan.date)],
-  ["城市", (plan: TripPlan) => plan.city],
-  ["场馆", (plan: TripPlan) => plan.venue],
-  ["建议摘要", (plan: TripPlan) => generateTripAdvice(plan).summary],
-  ["散场风险", (plan: TripPlan) => venueValue(plan, "crowdRiskScore")],
-  ["住宿难度", (plan: TripPlan) => venueValue(plan, "hotelDifficultyScore")],
-  ["当天往返难度", (plan: TripPlan) => venueValue(plan, "dayTripDifficultyScore")],
-  ["座位类型", (plan: TripPlan) => plan.seatType || "未填写"],
-  ["交通方式", (plan: TripPlan) => plan.transportMode || "未填写"],
-  ["酒店区域", (plan: TripPlan) => plan.hotelArea || "未填写"],
-  ["总预算", (plan: TripPlan) => formatCurrency(calculateTotalCost(plan))],
-  ["值得去指数", (plan: TripPlan) => calculateWorthScore(plan).toString()],
-  ["喜欢程度", (plan: TripPlan) => `${plan.preference}/10`],
-  ["稀有程度", (plan: TripPlan) => `${plan.rarity}/10`],
-  ["疲劳程度", (plan: TripPlan) => `${plan.fatigue}/10`],
-  ["座位满意度", (plan: TripPlan) => `${plan.seatSatisfaction}/10`],
-  ["酒店安静程度", (plan: TripPlan) => `${plan.hotelQuietness}/10`],
-  ["后悔风险", (plan: TripPlan) => `${plan.regretRisk}/10`],
-] as const;
 
 const sortPlans = (plans: TripPlan[], sortKey: SortKey) => {
   return [...plans].sort((a, b) => {
@@ -72,7 +53,7 @@ const sortPlans = (plans: TripPlan[], sortKey: SortKey) => {
   });
 };
 
-export const Compare = ({ plans }: CompareProps) => {
+export const Compare = ({ plans, customVenues = [] }: CompareProps) => {
   const [selectedIds, setSelectedIds] = useState<string[]>(
     sortPlans(plans, "worth")
       .slice(0, 3)
@@ -90,6 +71,26 @@ export const Compare = ({ plans }: CompareProps) => {
         (a, b) => calculateWorthScore(b) - calculateWorthScore(a),
       )[0]
     : undefined;
+  const rows = [
+    ["日期", (plan: TripPlan) => formatDate(plan.date)],
+    ["城市", (plan: TripPlan) => plan.city],
+    ["场馆", (plan: TripPlan) => plan.venue],
+    ["建议摘要", (plan: TripPlan) => generateTripAdvice(plan, customVenues).summary],
+    ["散场风险", (plan: TripPlan) => venueValue(plan, "crowdRiskScore", customVenues)],
+    ["住宿难度", (plan: TripPlan) => venueValue(plan, "hotelDifficultyScore", customVenues)],
+    ["当天往返难度", (plan: TripPlan) => venueValue(plan, "dayTripDifficultyScore", customVenues)],
+    ["座位类型", (plan: TripPlan) => plan.seatType || "未填写"],
+    ["交通方式", (plan: TripPlan) => plan.transportMode || "未填写"],
+    ["酒店区域", (plan: TripPlan) => plan.hotelArea || "未填写"],
+    ["总预算", (plan: TripPlan) => formatCurrency(calculateTotalCost(plan))],
+    ["值得去指数", (plan: TripPlan) => calculateWorthScore(plan).toString()],
+    ["喜欢程度", (plan: TripPlan) => `${plan.preference}/10`],
+    ["稀有程度", (plan: TripPlan) => `${plan.rarity}/10`],
+    ["疲劳程度", (plan: TripPlan) => `${plan.fatigue}/10`],
+    ["座位满意度", (plan: TripPlan) => `${plan.seatSatisfaction}/10`],
+    ["酒店安静程度", (plan: TripPlan) => `${plan.hotelQuietness}/10`],
+    ["后悔风险", (plan: TripPlan) => `${plan.regretRisk}/10`],
+  ] as const;
 
   const togglePlan = (id: string) => {
     setSelectedIds((current) =>
@@ -174,7 +175,7 @@ export const Compare = ({ plans }: CompareProps) => {
 
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {sortPlans(plans, sortKey).map((plan) => {
-            const venue = findVenueForPlan(plan);
+            const venue = findVenueForPlan(plan, customVenues);
 
             return (
               <label
@@ -200,7 +201,7 @@ export const Compare = ({ plans }: CompareProps) => {
                     </span>
                   ) : null}
                   <span className="mt-2 block text-xs leading-5 text-slate-500">
-                    {generateTripAdvice(plan).summary}
+                    {generateTripAdvice(plan, customVenues).summary}
                   </span>
                 </span>
               </label>

@@ -1,5 +1,6 @@
 import { Building2, Hotel, TrainFront } from "lucide-react";
 import { formatVenueType, type Venue } from "../data/venues";
+import { createMapSearchLinks } from "../utils/mapLinks";
 
 type VenueInsightCardProps = {
   venue: Venue;
@@ -13,6 +14,12 @@ const scoreItems = (venue: Venue) => [
 ] as const;
 
 export const VenueInsightCard = ({ venue }: VenueInsightCardProps) => {
+  const mapLinks = createMapSearchLinks({
+    name: venue.name,
+    city: venue.city,
+    country: venue.country,
+  });
+
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-soft">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -32,6 +39,22 @@ export const VenueInsightCard = ({ venue }: VenueInsightCardProps) => {
           {venue.capacity ? ` · ${venue.capacity.toLocaleString()} 人` : ""}
         </span>
       </div>
+
+      {mapLinks.length ? (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {mapLinks.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:border-flight/40 hover:text-flight"
+            >
+              {link.label}
+            </a>
+          ))}
+        </div>
+      ) : null}
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {scoreItems(venue).map(([label, score]) => (
