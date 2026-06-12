@@ -1,0 +1,121 @@
+import { Plane, Plus, Sparkles, WalletCards } from "lucide-react";
+import { Link } from "react-router-dom";
+import { PlanCard } from "../components/PlanCard";
+import type { TripPlan } from "../types";
+import { calculateTotalCost, calculateWorthScore } from "../utils/calculations";
+import { formatCurrency } from "../utils/format";
+
+type DashboardProps = {
+  plans: TripPlan[];
+};
+
+export const Dashboard = ({ plans }: DashboardProps) => {
+  const topPlan = [...plans].sort(
+    (a, b) => calculateWorthScore(b) - calculateWorthScore(a),
+  )[0];
+  const totalBudget = plans.reduce((sum, plan) => sum + calculateTotalCost(plan), 0);
+  const averageScore = plans.length
+    ? Math.round(
+        plans.reduce((sum, plan) => sum + calculateWorthScore(plan), 0) /
+          plans.length,
+      )
+    : 0;
+
+  return (
+    <div className="space-y-6">
+      <section className="grid gap-4 lg:grid-cols-[1.45fr_0.9fr]">
+        <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-soft">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-sm font-medium text-flight">演唱会远征规划器</p>
+              <h1 className="mt-2 text-3xl font-semibold tracking-normal text-ink">
+                把冲动远征变成清醒心动
+              </h1>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+                记录场次、预算、体力和座位预期，自动算出总花费和值得去指数。
+              </p>
+            </div>
+            <Link
+              to="/new"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-ink px-4 text-sm font-semibold text-white transition hover:bg-slate-700"
+            >
+              <Plus size={18} />
+              新建计划
+            </Link>
+          </div>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-lg bg-mist p-4">
+              <WalletCards size={18} className="text-moss" />
+              <p className="mt-3 text-xs text-slate-500">计划总预算</p>
+              <p className="mt-1 text-xl font-semibold">{formatCurrency(totalBudget)}</p>
+            </div>
+            <div className="rounded-lg bg-blue-50 p-4">
+              <Sparkles size={18} className="text-flight" />
+              <p className="mt-3 text-xs text-slate-500">平均值得去指数</p>
+              <p className="mt-1 text-xl font-semibold">{averageScore}</p>
+            </div>
+            <div className="rounded-lg bg-orange-50 p-4">
+              <Plane size={18} className="text-coral" />
+              <p className="mt-3 text-xs text-slate-500">计划数量</p>
+              <p className="mt-1 text-xl font-semibold">{plans.length}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-slate-200 bg-ink p-6 text-white shadow-soft">
+          <p className="text-sm text-slate-300">当前最优选择</p>
+          {topPlan ? (
+            <>
+              <h2 className="mt-3 text-2xl font-semibold">{topPlan.title}</h2>
+              <p className="mt-2 text-sm text-slate-300">
+                {topPlan.city} · {topPlan.venue}
+              </p>
+              <div className="mt-8 flex items-end justify-between gap-4">
+                <span className="text-6xl font-semibold">
+                  {calculateWorthScore(topPlan)}
+                </span>
+                <Link
+                  to={`/plans/${topPlan.id}`}
+                  className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-ink"
+                >
+                  查看详情
+                </Link>
+              </div>
+            </>
+          ) : (
+            <p className="mt-4 text-sm text-slate-300">还没有计划。</p>
+          )}
+        </div>
+      </section>
+
+      <section>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-xl font-semibold">所有演出计划</h2>
+          <Link to="/compare" className="text-sm font-medium text-flight">
+            横向比较
+          </Link>
+        </div>
+
+        {plans.length ? (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {plans.map((plan) => (
+              <PlanCard key={plan.id} plan={plan} />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center">
+            <p className="text-slate-600">还没有演出计划。</p>
+            <Link
+              to="/new"
+              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white"
+            >
+              <Plus size={16} />
+              创建第一条计划
+            </Link>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+};
