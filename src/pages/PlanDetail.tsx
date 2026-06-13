@@ -17,6 +17,7 @@ import { TripTimeline } from "../components/TripTimeline";
 import { VenueInsightCard } from "../components/VenueInsightCard";
 import { findCityGuideForPlan } from "../data/cityGuides";
 import { findVenueForPlan, type Venue } from "../data/venues";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import { generateTripAdvice } from "../lib/adviceEngine";
 import type { UserPreferences } from "../lib/userPreferences";
 import type { TripPlan } from "../types";
@@ -43,6 +44,7 @@ export const PlanDetail = ({
   const { id } = useParams();
   const navigate = useNavigate();
   const plan = plans.find((item) => item.id === id);
+  useDocumentTitle(plan?.title);
 
   if (!plan) {
     return (

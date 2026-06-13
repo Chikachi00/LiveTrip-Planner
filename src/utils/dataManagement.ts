@@ -19,7 +19,8 @@ const getString = (record: Record<string, unknown>, key: string, fallback = "") 
 
 const getNumber = (record: Record<string, unknown>, key: string, fallback = 0) => {
   const value = record[key];
-  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+  const number = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(number) ? number : fallback;
 };
 
 const getStringArray = (record: Record<string, unknown>, key: string) => {

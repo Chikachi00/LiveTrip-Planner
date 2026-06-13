@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import type { Venue } from "../data/venues";
 import type { UserPreferences } from "../lib/userPreferences";
 import type { TripPlan } from "../types";
+import { useToast } from "./ToastProvider";
 import {
   createMarkdownFileName,
   downloadTextFile,
@@ -22,6 +23,7 @@ export const MarkdownExportPanel = ({
 }: MarkdownExportPanelProps) => {
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(false);
+  const { showToast } = useToast();
   const markdown = useMemo(
     () => generateTripMarkdown(plan, customVenues, userPreferences),
     [customVenues, plan, userPreferences],
@@ -33,10 +35,17 @@ export const MarkdownExportPanel = ({
       await navigator.clipboard.writeText(markdown);
       setCopied(true);
       setCopyError(false);
+      showToast("Markdown 已复制到剪贴板。", "success");
       window.setTimeout(() => setCopied(false), 1800);
     } catch {
       setCopyError(true);
+      showToast("无法写入剪贴板，请手动复制或下载文件。", "warning");
     }
+  };
+
+  const downloadMarkdown = () => {
+    downloadTextFile(markdown, fileName);
+    showToast("Markdown 文件已下载。", "success");
   };
 
   return (
@@ -59,7 +68,7 @@ export const MarkdownExportPanel = ({
           </button>
           <button
             type="button"
-            onClick={() => downloadTextFile(markdown, fileName)}
+            onClick={downloadMarkdown}
             className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-ink px-4 text-sm font-semibold text-white transition hover:bg-slate-700"
           >
             <Download size={16} />

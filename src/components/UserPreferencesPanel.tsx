@@ -1,5 +1,6 @@
 import { SlidersHorizontal } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
+import { useUnsavedChangesWarning } from "../hooks/useUnsavedChangesWarning";
 import {
   defaultUserPreferences,
   resetUserPreferences,
@@ -31,22 +32,31 @@ export const UserPreferencesPanel = ({
 }: UserPreferencesPanelProps) => {
   const [draft, setDraft] = useState<UserPreferences>(preferences);
   const [message, setMessage] = useState("");
+  const [isDirty, setIsDirty] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useUnsavedChangesWarning(isDirty, "用户偏好存在未保存内容，确定离开吗？");
 
   useEffect(() => {
     setDraft(preferences);
+    setIsDirty(false);
   }, [preferences]);
 
   const update = <Key extends keyof UserPreferences>(
     key: Key,
     value: UserPreferences[Key],
   ) => {
+    setIsDirty(true);
     setDraft((current) => ({ ...current, [key]: value }));
   };
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setIsSaving(true);
+    setIsDirty(false);
     onSave(draft);
     setMessage("用户偏好已保存。新建计划会自动应用默认出发城市和预算。");
+    window.setTimeout(() => setIsSaving(false), 250);
   };
 
   const handleReset = () => {
@@ -221,10 +231,11 @@ export const UserPreferencesPanel = ({
 
         <div className="md:col-span-2">
           <button
-            type="submit"
-            className="inline-flex h-10 items-center justify-center rounded-lg bg-ink px-4 text-sm font-semibold text-white transition hover:bg-slate-700"
+          type="submit"
+            disabled={isSaving}
+            className="inline-flex h-10 items-center justify-center rounded-lg bg-ink px-4 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            保存用户偏好
+            {isSaving ? "保存中..." : "保存用户偏好"}
           </button>
         </div>
       </form>

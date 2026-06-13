@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { defaultPlanInput, PlanForm } from "../components/PlanForm";
 import type { Venue } from "../data/venues";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import type { UserPreferences } from "../lib/userPreferences";
 import type { TripPlan } from "../types";
 import { createPlan } from "../utils/storage";
@@ -18,6 +19,7 @@ export const NewPlan = ({
   onCreateCustomVenue,
   onCreate,
 }: NewPlanProps) => {
+  useDocumentTitle("新建计划");
   const navigate = useNavigate();
   const initialValue = {
     ...defaultPlanInput,

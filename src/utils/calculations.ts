@@ -1,18 +1,28 @@
 import type { TripPlan, WorthScoreResult } from "../types";
 
-const clamp = (value: number, min: number, max: number) => {
+export const clamp = (value: number, min: number, max: number) => {
   return Math.min(Math.max(value, min), max);
 };
 
+const safeNumber = (value: unknown, fallback = 0) => {
+  const number = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(number) ? number : fallback;
+};
+
 export const calculateTotalCost = (plan: TripPlan): number => {
+  const hotelCost =
+    safeNumber(plan.hotelCost) > 0
+      ? safeNumber(plan.hotelCost)
+      : safeNumber(plan.hotelNightlyPrice) * safeNumber(plan.hotelNights);
+
   return (
-    plan.ticketPrice +
-    plan.serviceFee +
-    plan.transportCost +
-    plan.hotelCost +
-    plan.foodBudget +
-    plan.merchBudget +
-    plan.localTransitCost
+    safeNumber(plan.ticketPrice) +
+    safeNumber(plan.serviceFee) +
+    safeNumber(plan.transportCost) +
+    hotelCost +
+    safeNumber(plan.foodBudget) +
+    safeNumber(plan.merchBudget) +
+    safeNumber(plan.localTransitCost)
   );
 };
 

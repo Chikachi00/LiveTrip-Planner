@@ -13,10 +13,36 @@
 body {
   margin: 0;
   min-width: 320px;
+  overflow-x: hidden;
+}
+
+#root {
+  min-width: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+table,
+pre,
+svg,
+canvas {
+  max-width: 100%;
 }
 
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
+}
+
+a,
+p,
+h1,
+h2,
+h3,
+span {
+  overflow-wrap: anywhere;
 }

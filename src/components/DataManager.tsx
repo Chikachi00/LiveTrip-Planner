@@ -4,6 +4,7 @@ import type { Venue } from "../data/venues";
 import type { UserPreferences } from "../lib/userPreferences";
 import type { TripPlan } from "../types";
 import { createBackupJson, downloadJson } from "../utils/dataManagement";
+import { useToast } from "./ToastProvider";
 
 type ImportResult = {
   importedPlans: number;
@@ -30,6 +31,8 @@ export const DataManager = ({
 }: DataManagerProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState("");
+  const [isBusy, setIsBusy] = useState(false);
+  const { showToast } = useToast();
 
   const exportJson = () => {
     downloadJson(
@@ -37,6 +40,7 @@ export const DataManager = ({
       "live-trip-planner-backup.json",
     );
     setMessage("已导出 JSON 备份，包含计划、自定义场馆和用户偏好。");
+    showToast("JSON 备份已导出。", "success");
   };
 
   const importJson = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -47,6 +51,7 @@ export const DataManager = ({
       return;
     }
 
+    setIsBusy(true);
     try {
       const raw = await file.text();
       const result = onImportJson(raw);
@@ -61,8 +66,12 @@ export const DataManager = ({
             }。`
           : "没有导入数据，请检查 JSON 结构或重复 id。",
       );
+      showToast("JSON 导入完成。", "success");
     } catch {
       setMessage("导入失败：文件不是有效的 JSON 备份。");
+      showToast("JSON 格式不正确，请检查备份文件。", "error");
+    } finally {
+      setIsBusy(false);
     }
   };
 
@@ -103,7 +112,8 @@ export const DataManager = ({
           <button
             type="button"
             onClick={exportJson}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-ink transition hover:border-flight/40 hover:text-flight"
+            disabled={isBusy}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-ink transition hover:border-flight/40 hover:text-flight disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Download size={16} />
             导出 JSON
@@ -111,10 +121,11 @@ export const DataManager = ({
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-ink transition hover:border-flight/40 hover:text-flight"
+            disabled={isBusy}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-ink transition hover:border-flight/40 hover:text-flight disabled:cursor-not-allowed disabled:opacity-60"
           >
             <FileUp size={16} />
-            导入 JSON
+            {isBusy ? "导入中..." : "导入 JSON"}
           </button>
           <button
             type="button"

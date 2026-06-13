@@ -1,6 +1,8 @@
 import { Building2, Edit3, MapPin, Plus, Search, Trash2 } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 import { venues as builtInVenues, formatVenueType, type Venue } from "../data/venues";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
+import { useUnsavedChangesWarning } from "../hooks/useUnsavedChangesWarning";
 import {
   createCustomVenue,
   defaultVenueInput,
@@ -204,6 +206,7 @@ const VenueCard = ({
 };
 
 export const Venues = ({ customVenues, onCreate, onUpdate, onDelete }: VenuesProps) => {
+  useDocumentTitle("Venues");
   const [query, setQuery] = useState("");
   const [country, setCountry] = useState("all");
   const [city, setCity] = useState("all");
@@ -211,6 +214,12 @@ export const Venues = ({ customVenues, onCreate, onUpdate, onDelete }: VenuesPro
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>(() => createDraft());
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+
+  useUnsavedChangesWarning(
+    isFormOpen && isDirty,
+    "自定义场馆存在未保存内容，确定离开吗？",
+  );
 
   const allVenues = useMemo(
     () => [
@@ -247,12 +256,14 @@ export const Venues = ({ customVenues, onCreate, onUpdate, onDelete }: VenuesPro
   const startCreate = () => {
     setEditingId(null);
     setDraft(createDraft());
+    setIsDirty(false);
     setIsFormOpen(true);
   };
 
   const startEdit = (venue: Venue) => {
     setEditingId(venue.id);
     setDraft(createDraft(venue));
+    setIsDirty(false);
     setIsFormOpen(true);
   };
 
@@ -273,6 +284,16 @@ export const Venues = ({ customVenues, onCreate, onUpdate, onDelete }: VenuesPro
     setIsFormOpen(false);
     setEditingId(null);
     setDraft(createDraft());
+    setIsDirty(false);
+  };
+
+  const cancelForm = () => {
+    if (isDirty && !window.confirm("自定义场馆存在未保存内容，确定取消吗？")) {
+      return;
+    }
+
+    setIsFormOpen(false);
+    setIsDirty(false);
   };
 
   const handleDelete = (venue: Venue) => {
@@ -402,7 +423,11 @@ export const Venues = ({ customVenues, onCreate, onUpdate, onDelete }: VenuesPro
           <h2 className="text-lg font-semibold">
             {editingId ? "编辑自定义场馆" : "新增自定义场馆"}
           </h2>
-          <form onSubmit={submit} className="mt-5 grid gap-4 md:grid-cols-2">
+          <form
+            onSubmit={submit}
+            onChange={() => setIsDirty(true)}
+            className="mt-5 grid gap-4 md:grid-cols-2"
+          >
             {textFields.map(([key, label, placeholder]) => (
               <label key={key} className="block">
                 <span className="mb-2 block text-sm font-medium text-slate-700">
@@ -527,7 +552,7 @@ export const Venues = ({ customVenues, onCreate, onUpdate, onDelete }: VenuesPro
               </button>
               <button
                 type="button"
-                onClick={() => setIsFormOpen(false)}
+                onClick={cancelForm}
                 className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 px-4 text-sm font-semibold text-slate-600"
               >
                 取消

@@ -1,8 +1,11 @@
 import { Settings as SettingsIcon } from "lucide-react";
 import { CloudSyncPanel } from "../components/CloudSyncPanel";
 import { DataManager } from "../components/DataManager";
+import { useToast } from "../components/ToastProvider";
 import { UserPreferencesPanel } from "../components/UserPreferencesPanel";
 import type { Venue } from "../data/venues";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
+import { resetOnboarding } from "../lib/onboarding";
 import type { UserPreferences } from "../lib/userPreferences";
 import type { TripPlan } from "../types";
 
@@ -53,6 +56,14 @@ export const Settings = ({
   onClearAll,
   onPullCloudData,
 }: SettingsProps) => {
+  useDocumentTitle("Settings");
+  const { showToast } = useToast();
+
+  const showOnboardingAgain = () => {
+    resetOnboarding();
+    showToast("首次使用引导已恢复，返回 Dashboard 即可查看。", "success");
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -64,6 +75,13 @@ export const Settings = ({
         <p className="mt-2 text-sm leading-6 text-slate-600">
           管理 Cloudflare D1 手动同步、用户偏好、JSON 备份和示例数据。本地 localStorage 仍然是主存储。
         </p>
+        <button
+          type="button"
+          onClick={showOnboardingAgain}
+          className="mt-4 inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-flight/40 hover:text-flight"
+        >
+          重新查看使用引导
+        </button>
       </div>
 
       <CloudSyncPanel

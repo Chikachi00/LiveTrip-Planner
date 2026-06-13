@@ -1,6 +1,7 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { PlanForm } from "../components/PlanForm";
 import type { Venue } from "../data/venues";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import type { TripPlan, TripPlanInput } from "../types";
 
 type EditPlanProps = {
@@ -19,6 +20,7 @@ export const EditPlan = ({
   const { id } = useParams();
   const navigate = useNavigate();
   const plan = plans.find((item) => item.id === id);
+  useDocumentTitle(plan ? `编辑 ${plan.title}` : "编辑计划");
 
   if (!plan) {
     return (

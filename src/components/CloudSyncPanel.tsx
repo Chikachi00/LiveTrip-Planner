@@ -13,6 +13,7 @@ import {
 import type { UserPreferences } from "../lib/userPreferences";
 import type { TripPlan } from "../types";
 import { formatDateTime } from "../utils/format";
+import { useToast } from "./ToastProvider";
 
 type CloudPullMergeResult = {
   plans: {
@@ -61,6 +62,8 @@ export const CloudSyncPanel = ({
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [isBusy, setIsBusy] = useState(false);
+  const [currentAction, setCurrentAction] = useState("");
+  const { showToast } = useToast();
 
   useEffect(() => {
     const stored = getSyncCredentials();
@@ -69,17 +72,21 @@ export const CloudSyncPanel = ({
     setSyncToken("");
   }, []);
 
-  const runAction = async (action: () => Promise<void>) => {
+  const runAction = async (label: string, action: () => Promise<void>) => {
     setIsBusy(true);
+    setCurrentAction(label);
     setError("");
     setMessage("");
 
     try {
       await action();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "云端同步操作失败。");
+      const text = caught instanceof Error ? caught.message : "云端同步操作失败。";
+      setError(text);
+      showToast(text, "error");
     } finally {
       setIsBusy(false);
+      setCurrentAction("");
     }
   };
 
@@ -90,13 +97,14 @@ export const CloudSyncPanel = ({
   };
 
   const handleCreateSpace = () =>
-    runAction(async () => {
+    runAction("正在创建同步空间", async () => {
       const created = await createSyncSpace();
       setCredentials(created);
       setSyncSpaceId(created.syncSpaceId);
       setSyncToken("");
       setOneTimeToken(created.syncToken);
       setMessage("同步空间已创建。Sync Token 只显示一次，请立即保存。");
+      showToast("Sync Space 创建成功。", "success");
     });
 
   const handleConnect = (event: FormEvent<HTMLFormElement>) => {
@@ -121,7 +129,7 @@ export const CloudSyncPanel = ({
   };
 
   const handlePush = () =>
-    runAction(async () => {
+    runAction("正在上传云端", async () => {
       const result = await pushAllDataToCloud({
         plans,
         customVenues,
@@ -132,10 +140,11 @@ export const CloudSyncPanel = ({
       setMessage(
         `上传完成：计划 ${result.synced.plans} 条，自定义场馆 ${result.synced.customVenues} 个，用户偏好 ${result.synced.preferences} 份。${warning}`,
       );
+      showToast("云端上传完成。", "success");
     });
 
   const handlePull = () =>
-    runAction(async () => {
+    runAction("正在从云端拉取", async () => {
       const result = await pullAllDataFromCloud();
       const merge = onPullCloudData({
         cloudPlans: result.plans,
@@ -147,6 +156,7 @@ export const CloudSyncPanel = ({
       setMessage(
         `拉取完成：计划新增 ${merge.plans.added} 条、更新 ${merge.plans.updated} 条、保留本地 ${merge.plans.keptLocal} 条；自定义场馆新增 ${merge.customVenues.added} 个、更新 ${merge.customVenues.updated} 个、保留本地 ${merge.customVenues.keptLocal} 个；${preferenceStatusText[merge.preferencesStatus]}。${warning}`,
       );
+      showToast("云端拉取完成。", "success");
     });
 
   const handleDisconnect = () => {
@@ -165,6 +175,7 @@ export const CloudSyncPanel = ({
     setOneTimeToken("");
     setMessage("已断开同步。云端数据不会被删除。");
     setError("");
+    showToast("已断开云端同步。", "info");
   };
 
   return (
@@ -291,6 +302,12 @@ export const CloudSyncPanel = ({
           断开同步
         </button>
       </div>
+
+      {isBusy && currentAction ? (
+        <p className="mt-4 rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-700">
+          {currentAction}...
+        </p>
+      ) : null}
 
       {message ? (
         <p className="mt-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">

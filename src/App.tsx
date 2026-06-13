@@ -1,13 +1,7 @@
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
-import { Compare } from "./pages/Compare";
-import { Dashboard } from "./pages/Dashboard";
-import { EditPlan } from "./pages/EditPlan";
-import { NewPlan } from "./pages/NewPlan";
-import { PlanDetail } from "./pages/PlanDetail";
-import { Settings } from "./pages/Settings";
-import { Venues } from "./pages/Venues";
+import { useToast } from "./components/ToastProvider";
 import type { TripPlan, TripPlanInput } from "./types";
 import {
   appendMissingSamplePlans,
@@ -15,7 +9,6 @@ import {
 } from "./utils/dataManagement";
 import {
   getStoredCustomVenues,
-  normalizeVenue,
   removeCustomVenue,
   saveCustomVenues,
   updateCustomVenue,
@@ -26,35 +19,53 @@ import {
   getUserPreferences,
   hasStoredUserPreferences,
   clearUserPreferences,
-  normalizeUserPreferences,
   saveImportedUserPreferences,
   saveUserPreferences,
   type UserPreferences,
 } from "./lib/userPreferences";
 import {
   getStoredPlans,
-  normalizePlan,
   removePlan,
   savePlans,
   updatePlan,
   upsertPlan,
 } from "./utils/storage";
+import {
+  mergePlansByUpdatedAt,
+  mergePreferencesByUpdatedAt,
+  mergeVenuesByUpdatedAt,
+} from "./utils/merge";
 
-const getUpdatedTime = (plan: TripPlan) => {
-  const time = new Date(plan.updatedAt).getTime();
-  return Number.isNaN(time) ? null : time;
-};
+const Dashboard = lazy(() =>
+  import("./pages/Dashboard").then((module) => ({ default: module.Dashboard })),
+);
+const NewPlan = lazy(() =>
+  import("./pages/NewPlan").then((module) => ({ default: module.NewPlan })),
+);
+const EditPlan = lazy(() =>
+  import("./pages/EditPlan").then((module) => ({ default: module.EditPlan })),
+);
+const PlanDetail = lazy(() =>
+  import("./pages/PlanDetail").then((module) => ({ default: module.PlanDetail })),
+);
+const Compare = lazy(() =>
+  import("./pages/Compare").then((module) => ({ default: module.Compare })),
+);
+const Venues = lazy(() =>
+  import("./pages/Venues").then((module) => ({ default: module.Venues })),
+);
+const Settings = lazy(() =>
+  import("./pages/Settings").then((module) => ({ default: module.Settings })),
+);
 
-const getEntityUpdatedTime = (value: { updatedAt?: string }) => {
-  if (!value.updatedAt) {
-    return null;
-  }
-
-  const time = new Date(value.updatedAt).getTime();
-  return Number.isNaN(time) ? null : time;
-};
+const PageFallback = () => (
+  <div className="rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-soft">
+    正在加载页面...
+  </div>
+);
 
 export const App = () => {
+  const { showToast } = useToast();
   const [plans, setPlans] = useState<TripPlan[]>(() => getStoredPlans());
   const [customVenues, setCustomVenues] = useState<Venue[]>(() =>
     getStoredCustomVenues(),
@@ -71,16 +82,19 @@ export const App = () => {
   const handleCreate = (plan: TripPlan) => {
     const next = upsertPlan(plan);
     setPlans(next);
+    showToast("计划已保存。", "success");
   };
 
   const handleDelete = (id: string) => {
     const next = removePlan(id);
     setPlans(next);
+    showToast("计划已删除。", "success");
   };
 
   const handleUpdate = (id: string, value: TripPlanInput) => {
     const next = updatePlan(id, value);
     setPlans(next);
+    showToast("计划已更新。", "success");
   };
 
   const handleImportJson = (raw: string) => {
@@ -106,6 +120,8 @@ export const App = () => {
       }
     }
 
+    showToast("JSON 导入完成。", "success");
+
     return {
       importedPlans: result.importedCount,
       importedCustomVenues: result.importedCustomVenueCount,
@@ -117,6 +133,12 @@ export const App = () => {
     const result = appendMissingSamplePlans(plans);
     savePlans(result.plans);
     setPlans(result.plans);
+    showToast(
+      result.importedCount > 0
+        ? `已加载 ${result.importedCount} 条示例数据。`
+        : "示例数据已存在。",
+      "success",
+    );
     return result.importedCount;
   };
 
@@ -127,29 +149,34 @@ export const App = () => {
     setPlans([]);
     setCustomVenues([]);
     setUserPreferences(resetPreferences);
+    showToast("本地数据已清空。", "success");
   };
 
   const handleCreateCustomVenue = (venue: Venue) => {
     const next = [venue, ...customVenues.filter((item) => item.id !== venue.id)];
     saveCustomVenues(next);
     setCustomVenues(next);
+    showToast("自定义场馆已保存。", "success");
   };
 
   const handleUpdateCustomVenue = (id: string, value: VenueInput) => {
     const next = updateCustomVenue(customVenues, id, value);
     saveCustomVenues(next);
     setCustomVenues(next);
+    showToast("自定义场馆已更新。", "success");
   };
 
   const handleDeleteCustomVenue = (id: string) => {
     const next = removeCustomVenue(customVenues, id);
     saveCustomVenues(next);
     setCustomVenues(next);
+    showToast("自定义场馆已删除。", "success");
   };
 
   const handleSaveUserPreferences = (preferences: UserPreferences) => {
     const next = saveUserPreferences(preferences);
     setUserPreferences(next);
+    showToast("用户偏好已保存。", "success");
   };
 
   const handleResetUserPreferences = (preferences: UserPreferences) => {
@@ -157,49 +184,15 @@ export const App = () => {
   };
 
   const handlePullCloudPlans = (cloudPlans: TripPlan[]) => {
-    const byId = new Map(plans.map((plan) => [plan.id, normalizePlan(plan)]));
-    let added = 0;
-    let updated = 0;
-    let keptLocal = 0;
-
-    for (const rawCloudPlan of cloudPlans) {
-      if (!rawCloudPlan.id) {
-        continue;
-      }
-
-      const cloudPlan = normalizePlan(rawCloudPlan);
-      const localPlan = byId.get(cloudPlan.id);
-
-      if (!localPlan) {
-        byId.set(cloudPlan.id, cloudPlan);
-        added += 1;
-        continue;
-      }
-
-      const cloudUpdatedAt = getUpdatedTime(cloudPlan);
-      const localUpdatedAt = getUpdatedTime(localPlan);
-
-      if (
-        cloudUpdatedAt !== null &&
-        localUpdatedAt !== null &&
-        cloudUpdatedAt > localUpdatedAt
-      ) {
-        byId.set(cloudPlan.id, cloudPlan);
-        updated += 1;
-      } else {
-        keptLocal += 1;
-      }
-    }
-
-    const next = [...byId.values()].sort((a, b) => a.date.localeCompare(b.date));
-    savePlans(next);
-    setPlans(next);
+    const result = mergePlansByUpdatedAt(plans, cloudPlans);
+    savePlans(result.items);
+    setPlans(result.items);
 
     return {
-      added,
-      updated,
-      keptLocal,
-      total: next.length,
+      added: result.added,
+      updated: result.updated,
+      keptLocal: result.keptLocal,
+      total: result.total,
     };
   };
 
@@ -213,173 +206,121 @@ export const App = () => {
     cloudPreferences: UserPreferences | null;
   }) => {
     const planMerge = handlePullCloudPlans(cloudPlans);
-    const venuesById = new Map(
-      customVenues.map((venue) => [venue.id, normalizeVenue(venue)]),
-    );
-    let addedCustomVenues = 0;
-    let updatedCustomVenues = 0;
-    let keptLocalCustomVenues = 0;
+    const venueMerge = mergeVenuesByUpdatedAt(customVenues, cloudCustomVenues);
+    saveCustomVenues(venueMerge.items);
+    setCustomVenues(venueMerge.items);
 
-    for (const rawCloudVenue of cloudCustomVenues) {
-      if (!rawCloudVenue.id) {
-        continue;
-      }
+    const preferencesMerge = mergePreferencesByUpdatedAt({
+      hasLocalPreferences: hasStoredUserPreferences(),
+      localPreferences: userPreferences,
+      cloudPreferences,
+    });
 
-      const cloudVenue = normalizeVenue(rawCloudVenue);
-      const localVenue = venuesById.get(cloudVenue.id);
-
-      if (!localVenue) {
-        venuesById.set(cloudVenue.id, cloudVenue);
-        addedCustomVenues += 1;
-        continue;
-      }
-
-      const cloudUpdatedAt = getEntityUpdatedTime(rawCloudVenue);
-      const localUpdatedAt = getEntityUpdatedTime(localVenue);
-
-      if (
-        cloudUpdatedAt !== null &&
-        localUpdatedAt !== null &&
-        cloudUpdatedAt > localUpdatedAt
-      ) {
-        venuesById.set(cloudVenue.id, cloudVenue);
-        updatedCustomVenues += 1;
-      } else {
-        keptLocalCustomVenues += 1;
-      }
-    }
-
-    const nextCustomVenues = [...venuesById.values()];
-    saveCustomVenues(nextCustomVenues);
-    setCustomVenues(nextCustomVenues);
-
-    let preferencesStatus: "none" | "imported" | "updated" | "keptLocal" = "none";
-
-    if (cloudPreferences) {
-      const cloudHasUpdatedAt = Boolean(cloudPreferences.updatedAt);
-      const localUpdatedAt = getEntityUpdatedTime(userPreferences);
-      const cloudUpdatedAt = getEntityUpdatedTime(cloudPreferences);
-
-      if (!hasStoredUserPreferences()) {
-        const next = saveImportedUserPreferences(
-          normalizeUserPreferences(cloudPreferences),
-        );
-        setUserPreferences(next);
-        preferencesStatus = "imported";
-      } else if (
-        cloudHasUpdatedAt &&
-        cloudUpdatedAt !== null &&
-        localUpdatedAt !== null &&
-        cloudUpdatedAt > localUpdatedAt
-      ) {
-        const next = saveImportedUserPreferences(
-          normalizeUserPreferences(cloudPreferences),
-        );
-        setUserPreferences(next);
-        preferencesStatus = "updated";
-      } else {
-        preferencesStatus = "keptLocal";
-      }
+    if (preferencesMerge.status === "imported" || preferencesMerge.status === "updated") {
+      const next = saveImportedUserPreferences(preferencesMerge.item);
+      setUserPreferences(next);
     }
 
     return {
       plans: planMerge,
       customVenues: {
-        added: addedCustomVenues,
-        updated: updatedCustomVenues,
-        keptLocal: keptLocalCustomVenues,
-        total: nextCustomVenues.length,
+        added: venueMerge.added,
+        updated: venueMerge.updated,
+        keptLocal: venueMerge.keptLocal,
+        total: venueMerge.total,
       },
-      preferencesStatus,
+      preferencesStatus: preferencesMerge.status,
     };
   };
 
   return (
     <BrowserRouter>
-      <Routes>
-        <Route element={<Layout />}>
-          <Route
-            index
-            element={
-              <Dashboard
-                plans={sortedPlans}
-                customVenues={customVenues}
-                onLoadSamples={handleLoadSamples}
-              />
-            }
-          />
-          <Route
-            path="/new"
-            element={
-              <NewPlan
-                customVenues={customVenues}
-                userPreferences={userPreferences}
-                onCreateCustomVenue={handleCreateCustomVenue}
-                onCreate={handleCreate}
-              />
-            }
-          />
-          <Route
-            path="/plans/:id"
-            element={
-              <PlanDetail
-                plans={plans}
-                customVenues={customVenues}
-                userPreferences={userPreferences}
-                onDelete={handleDelete}
-              />
-            }
-          />
-          <Route
-            path="/plans/:id/edit"
-            element={
-              <EditPlan
-                plans={plans}
-                customVenues={customVenues}
-                onCreateCustomVenue={handleCreateCustomVenue}
-                onUpdate={handleUpdate}
-              />
-            }
-          />
-          <Route
-            path="/compare"
-            element={
-              <Compare
-                plans={sortedPlans}
-                customVenues={customVenues}
-                userPreferences={userPreferences}
-              />
-            }
-          />
-          <Route
-            path="/venues"
-            element={
-              <Venues
-                customVenues={customVenues}
-                onCreate={handleCreateCustomVenue}
-                onUpdate={handleUpdateCustomVenue}
-                onDelete={handleDeleteCustomVenue}
-              />
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <Settings
-                plans={plans}
-                customVenues={customVenues}
-                userPreferences={userPreferences}
-                onSaveUserPreferences={handleSaveUserPreferences}
-                onResetUserPreferences={handleResetUserPreferences}
-                onImportJson={handleImportJson}
-                onLoadSamples={handleLoadSamples}
-                onClearAll={handleClearAll}
-                onPullCloudData={handlePullCloudData}
-              />
-            }
-          />
-        </Route>
-      </Routes>
+      <Suspense fallback={<PageFallback />}>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route
+              index
+              element={
+                <Dashboard
+                  plans={sortedPlans}
+                  customVenues={customVenues}
+                  onLoadSamples={handleLoadSamples}
+                />
+              }
+            />
+            <Route
+              path="/new"
+              element={
+                <NewPlan
+                  customVenues={customVenues}
+                  userPreferences={userPreferences}
+                  onCreateCustomVenue={handleCreateCustomVenue}
+                  onCreate={handleCreate}
+                />
+              }
+            />
+            <Route
+              path="/plans/:id"
+              element={
+                <PlanDetail
+                  plans={plans}
+                  customVenues={customVenues}
+                  userPreferences={userPreferences}
+                  onDelete={handleDelete}
+                />
+              }
+            />
+            <Route
+              path="/plans/:id/edit"
+              element={
+                <EditPlan
+                  plans={plans}
+                  customVenues={customVenues}
+                  onCreateCustomVenue={handleCreateCustomVenue}
+                  onUpdate={handleUpdate}
+                />
+              }
+            />
+            <Route
+              path="/compare"
+              element={
+                <Compare
+                  plans={sortedPlans}
+                  customVenues={customVenues}
+                  userPreferences={userPreferences}
+                />
+              }
+            />
+            <Route
+              path="/venues"
+              element={
+                <Venues
+                  customVenues={customVenues}
+                  onCreate={handleCreateCustomVenue}
+                  onUpdate={handleUpdateCustomVenue}
+                  onDelete={handleDeleteCustomVenue}
+                />
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <Settings
+                  plans={plans}
+                  customVenues={customVenues}
+                  userPreferences={userPreferences}
+                  onSaveUserPreferences={handleSaveUserPreferences}
+                  onResetUserPreferences={handleResetUserPreferences}
+                  onImportJson={handleImportJson}
+                  onLoadSamples={handleLoadSamples}
+                  onClearAll={handleClearAll}
+                  onPullCloudData={handlePullCloudData}
+                />
+              }
+            />
+          </Route>
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 };

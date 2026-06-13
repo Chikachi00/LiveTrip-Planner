@@ -2,6 +2,7 @@ import { ArrowDownAZ, GitCompare, Plus, Trophy } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { findVenueForPlan, type Venue } from "../data/venues";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import { generateTripAdvice } from "../lib/adviceEngine";
 import type { UserPreferences } from "../lib/userPreferences";
 import type { TripPlan } from "../types";
@@ -60,6 +61,7 @@ export const Compare = ({
   customVenues = [],
   userPreferences,
 }: CompareProps) => {
+  useDocumentTitle("Compare");
   const [selectedIds, setSelectedIds] = useState<string[]>(
     sortPlans(plans, "worth")
       .slice(0, 3)

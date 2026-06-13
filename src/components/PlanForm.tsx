@@ -2,6 +2,7 @@ import { ArrowLeft, Building2, Save, Search } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { getAllVenues, type Venue } from "../data/venues";
+import { useUnsavedChangesWarning } from "../hooks/useUnsavedChangesWarning";
 import { createVenueFromPlanText } from "../lib/customVenues";
 import type { TripPlanInput } from "../types";
 import { RatingInput } from "./RatingInput";
@@ -92,6 +93,10 @@ export const PlanForm = ({
     ...initialValue,
   });
   const [venueSearch, setVenueSearch] = useState("");
+  const [isDirty, setIsDirty] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useUnsavedChangesWarning(isDirty, "当前页面存在未保存内容，确定离开吗？");
 
   const allVenues = useMemo(() => getAllVenues(customVenues), [customVenues]);
 
@@ -113,11 +118,13 @@ export const PlanForm = ({
     key: Key,
     value: TripPlanInput[Key],
   ) => {
+    setIsDirty(true);
     setForm((current) => ({ ...current, [key]: value }));
   };
 
   const handleVenueChange = (venueId: string) => {
     if (!venueId) {
+      setIsDirty(true);
       setForm((current) => ({ ...current, venueId: "" }));
       return;
     }
@@ -128,6 +135,7 @@ export const PlanForm = ({
       return;
     }
 
+    setIsDirty(true);
     setForm((current) => ({
       ...current,
       venueId: selected.id,
@@ -138,6 +146,8 @@ export const PlanForm = ({
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setIsSaving(true);
+    setIsDirty(false);
     onSubmit({
       ...form,
       title: form.title.trim(),
@@ -153,6 +163,7 @@ export const PlanForm = ({
       venueCommuteTime: form.venueCommuteTime?.trim(),
       notes: form.notes?.trim(),
     });
+    window.setTimeout(() => setIsSaving(false), 250);
   };
 
   const selectedVenue = allVenues.find((venue) => venue.id === form.venueId);
@@ -175,6 +186,7 @@ export const PlanForm = ({
 
     const venue = createVenueFromPlanText(form.city, form.venue);
     onCreateCustomVenue(venue);
+    setIsDirty(true);
     setForm((current) => ({
       ...current,
       venueId: venue.id,
@@ -199,10 +211,11 @@ export const PlanForm = ({
         </div>
         <button
           type="submit"
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-ink px-5 text-sm font-semibold text-white transition hover:bg-slate-700"
+          disabled={isSaving}
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-ink px-5 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Save size={18} />
-          {submitLabel}
+          {isSaving ? "保存中..." : submitLabel}
         </button>
       </div>
 

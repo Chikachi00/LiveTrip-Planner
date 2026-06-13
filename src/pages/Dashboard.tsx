@@ -1,10 +1,15 @@
 import { Plane, Plus, Sparkles, WalletCards } from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { FirstRunOnboarding } from "../components/FirstRunOnboarding";
 import { PlanCard } from "../components/PlanCard";
 import type { Venue } from "../data/venues";
+import { dismissOnboarding, isOnboardingDismissed } from "../lib/onboarding";
+import { useToast } from "../components/ToastProvider";
 import type { TripPlan } from "../types";
 import { calculateTotalCost, calculateWorthScore } from "../utils/calculations";
 import { formatCurrency, formatDate } from "../utils/format";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 type DashboardProps = {
   plans: TripPlan[];
@@ -17,6 +22,11 @@ export const Dashboard = ({
   customVenues,
   onLoadSamples,
 }: DashboardProps) => {
+  useDocumentTitle();
+  const { showToast } = useToast();
+  const [showOnboarding, setShowOnboarding] = useState(
+    () => !plans.length && !isOnboardingDismissed(),
+  );
   const topPlan = [...plans].sort(
     (a, b) => calculateWorthScore(b) - calculateWorthScore(a),
   )[0];
@@ -29,8 +39,29 @@ export const Dashboard = ({
     : 0;
   const nextPlan = [...plans].sort((a, b) => a.date.localeCompare(b.date))[0];
 
+  const closeOnboarding = () => {
+    dismissOnboarding();
+    setShowOnboarding(false);
+  };
+
+  const loadSamplesFromOnboarding = () => {
+    const count = onLoadSamples();
+    closeOnboarding();
+    showToast(
+      count > 0 ? `已加载 ${count} 条示例数据。` : "示例数据已存在。",
+      "success",
+    );
+  };
+
   return (
     <div className="space-y-6">
+      {showOnboarding && plans.length === 0 ? (
+        <FirstRunOnboarding
+          onLoadSamples={loadSamplesFromOnboarding}
+          onDismiss={closeOnboarding}
+        />
+      ) : null}
+
       <section className="grid gap-4 lg:grid-cols-[1.45fr_0.9fr]">
         <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-soft">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
