@@ -157,6 +157,7 @@ const VenueCard = ({
             <button
               type="button"
               onClick={onEdit}
+              data-testid="venue-edit-button"
               className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:text-flight"
               aria-label="编辑自定义场馆"
             >
@@ -165,6 +166,7 @@ const VenueCard = ({
             <button
               type="button"
               onClick={onDelete}
+              data-testid="venue-delete-button"
               className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
               aria-label="删除自定义场馆"
             >
@@ -334,7 +336,7 @@ export const Venues = ({ customVenues, onCreate, onUpdate, onDelete }: VenuesPro
   ];
 
   return (
-    <div className="space-y-6">
+    <div data-testid="venues-page" className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="flex items-center gap-2 text-sm font-medium text-flight">
@@ -349,6 +351,7 @@ export const Venues = ({ customVenues, onCreate, onUpdate, onDelete }: VenuesPro
         <button
           type="button"
           onClick={startCreate}
+          data-testid="venue-add-button"
           className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-ink px-4 text-sm font-semibold text-white"
         >
           <Plus size={16} />
@@ -365,6 +368,7 @@ export const Venues = ({ customVenues, onCreate, onUpdate, onDelete }: VenuesPro
             </span>
             <input
               value={query}
+              data-testid="venue-search-input"
               onChange={(event) => setQuery(event.target.value)}
               placeholder="场馆、城市、车站或住宿区域"
               className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-flight focus:ring-4 focus:ring-blue-100"
@@ -426,6 +430,7 @@ export const Venues = ({ customVenues, onCreate, onUpdate, onDelete }: VenuesPro
           <form
             onSubmit={submit}
             onChange={() => setIsDirty(true)}
+            data-testid="venue-form"
             className="mt-5 grid gap-4 md:grid-cols-2"
           >
             {textFields.map(([key, label, placeholder]) => (
@@ -435,6 +440,7 @@ export const Venues = ({ customVenues, onCreate, onUpdate, onDelete }: VenuesPro
                 </span>
                 <input
                   required={key === "name" || key === "city"}
+                  data-testid={`venue-${key}-input`}
                   value={String(draft[key] ?? "")}
                   onChange={(event) =>
                     setDraft((current) => ({
@@ -473,6 +479,7 @@ export const Venues = ({ customVenues, onCreate, onUpdate, onDelete }: VenuesPro
               <input
                 type="number"
                 min="0"
+                data-testid="venue-capacity-input"
                 value={draft.capacity ?? ""}
                 onChange={(event) =>
                   setDraft((current) => ({
@@ -493,6 +500,7 @@ export const Venues = ({ customVenues, onCreate, onUpdate, onDelete }: VenuesPro
                   type="number"
                   min="1"
                   max="5"
+                  data-testid={`venue-${key}-input`}
                   value={draft[key]}
                   onChange={(event) =>
                     setDraft((current) => ({
@@ -512,6 +520,7 @@ export const Venues = ({ customVenues, onCreate, onUpdate, onDelete }: VenuesPro
                 </span>
                 <input
                   value={draft[key]}
+                  data-testid={`venue-${key}-input`}
                   onChange={(event) =>
                     setDraft((current) => ({
                       ...current,
@@ -531,6 +540,7 @@ export const Venues = ({ customVenues, onCreate, onUpdate, onDelete }: VenuesPro
                 </span>
                 <textarea
                   value={String(draft[key] ?? "")}
+                  data-testid={`venue-${key}-input`}
                   onChange={(event) =>
                     setDraft((current) => ({
                       ...current,
@@ -546,6 +556,7 @@ export const Venues = ({ customVenues, onCreate, onUpdate, onDelete }: VenuesPro
             <div className="flex flex-wrap gap-2 md:col-span-2">
               <button
                 type="submit"
+                data-testid="venue-save-button"
                 className="inline-flex h-10 items-center justify-center rounded-lg bg-ink px-4 text-sm font-semibold text-white"
               >
                 保存自定义场馆

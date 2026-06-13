@@ -1,4 +1,3 @@
-import { samplePlans } from "../data/samplePlans";
 import type { TripPlan, TripPlanInput } from "../types";
 
 const STORAGE_KEY = "livetrip-planner:plans";
@@ -76,21 +75,20 @@ export const normalizePlan = (plan: Partial<TripPlan>): TripPlan => {
 
 export const getStoredPlans = (): TripPlan[] => {
   if (!canUseLocalStorage()) {
-    return samplePlans;
+    return [];
   }
 
   const raw = window.localStorage.getItem(STORAGE_KEY);
 
   if (!raw) {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(samplePlans));
-    return samplePlans;
+    return [];
   }
 
   try {
     const parsed = JSON.parse(raw) as TripPlan[];
-    return Array.isArray(parsed) ? parsed.map(normalizePlan) : samplePlans;
+    return Array.isArray(parsed) ? parsed.map(normalizePlan) : [];
   } catch {
-    return samplePlans;
+    return [];
   }
 };
 

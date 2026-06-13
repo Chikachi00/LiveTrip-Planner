@@ -196,7 +196,11 @@ export const PlanForm = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto max-w-6xl space-y-6">
+    <form
+      onSubmit={handleSubmit}
+      data-testid="plan-form"
+      className="mx-auto max-w-6xl space-y-6"
+    >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <Link
@@ -212,6 +216,7 @@ export const PlanForm = ({
         <button
           type="submit"
           disabled={isSaving}
+          data-testid="plan-submit-button"
           className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-ink px-5 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Save size={18} />
@@ -229,6 +234,7 @@ export const PlanForm = ({
               </span>
               <input
                 required
+                data-testid="plan-title-input"
                 value={form.title}
                 onChange={(event) => updateField("title", event.target.value)}
                 placeholder="例如：GKSS Day1 横滨"
@@ -242,6 +248,7 @@ export const PlanForm = ({
               </span>
               <input
                 required
+                data-testid="plan-artist-input"
                 value={form.artist}
                 onChange={(event) => updateField("artist", event.target.value)}
                 placeholder="Ado"
@@ -256,6 +263,7 @@ export const PlanForm = ({
               <input
                 required
                 type="date"
+                data-testid="plan-date-input"
                 value={form.date}
                 onChange={(event) => updateField("date", event.target.value)}
                 className="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none transition focus:border-flight focus:ring-4 focus:ring-blue-100"
@@ -277,6 +285,7 @@ export const PlanForm = ({
                 </span>
                 <input
                   value={venueSearch}
+                  data-testid="plan-venue-search-input"
                   onChange={(event) => setVenueSearch(event.target.value)}
                   placeholder="按场馆、城市或国家搜索"
                   className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-flight focus:ring-4 focus:ring-blue-100"
@@ -288,6 +297,7 @@ export const PlanForm = ({
                 </span>
                 <select
                   value={form.venueId ?? ""}
+                  data-testid="plan-venue-select"
                   onChange={(event) => handleVenueChange(event.target.value)}
                   className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-flight focus:ring-4 focus:ring-blue-100"
                 >
@@ -323,6 +333,7 @@ export const PlanForm = ({
               </span>
               <input
                 required
+                data-testid="plan-city-input"
                 value={form.city}
                 onChange={(event) => {
                   updateField("city", event.target.value);
@@ -339,6 +350,7 @@ export const PlanForm = ({
               </span>
               <input
                 required
+                data-testid="plan-venue-input"
                 value={form.venue}
                 onChange={(event) => {
                   updateField("venue", event.target.value);
@@ -355,6 +367,7 @@ export const PlanForm = ({
               </span>
               <input
                 value={form.seatType ?? ""}
+                data-testid="plan-seat-type-input"
                 onChange={(event) => updateField("seatType", event.target.value)}
                 placeholder="Arena / Stand / Standing"
                 className="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none transition focus:border-flight focus:ring-4 focus:ring-blue-100"
@@ -367,6 +380,7 @@ export const PlanForm = ({
               </span>
               <textarea
                 value={form.notes}
+                data-testid="plan-notes-input"
                 onChange={(event) => updateField("notes", event.target.value)}
                 rows={4}
                 placeholder="记录抽票、同行、请假、换乘或其他提醒。"
@@ -388,6 +402,7 @@ export const PlanForm = ({
                   required
                   type="number"
                   min="0"
+                  data-testid={`money-${key}`}
                   value={form[key]}
                   onChange={(event) => updateField(key, Number(event.target.value))}
                   className="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none transition focus:border-flight focus:ring-4 focus:ring-blue-100"
@@ -408,6 +423,7 @@ export const PlanForm = ({
               </span>
               <input
                 value={form.departureCity ?? ""}
+                data-testid="plan-departure-city-input"
                 onChange={(event) => updateField("departureCity", event.target.value)}
                 placeholder="上海"
                 className="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none transition focus:border-flight focus:ring-4 focus:ring-blue-100"
@@ -419,6 +435,7 @@ export const PlanForm = ({
               </span>
               <input
                 value={form.transportMode ?? ""}
+                data-testid="plan-transport-mode-input"
                 onChange={(event) => updateField("transportMode", event.target.value)}
                 placeholder="飞机 + JR"
                 className="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none transition focus:border-flight focus:ring-4 focus:ring-blue-100"
@@ -430,6 +447,7 @@ export const PlanForm = ({
               </span>
               <input
                 value={form.oneWayDuration ?? ""}
+                data-testid="plan-one-way-duration-input"
                 onChange={(event) => updateField("oneWayDuration", event.target.value)}
                 placeholder="约 6 小时"
                 className="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none transition focus:border-flight focus:ring-4 focus:ring-blue-100"
@@ -447,6 +465,7 @@ export const PlanForm = ({
               </span>
               <input
                 value={form.hotelArea ?? ""}
+                data-testid="plan-hotel-area-input"
                 onChange={(event) => updateField("hotelArea", event.target.value)}
                 placeholder="横滨站 / 樱木町"
                 className="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none transition focus:border-flight focus:ring-4 focus:ring-blue-100"
@@ -459,6 +478,7 @@ export const PlanForm = ({
               <input
                 type="number"
                 min="0"
+                data-testid="plan-hotel-nightly-price-input"
                 value={form.hotelNightlyPrice ?? 0}
                 onChange={(event) =>
                   updateField("hotelNightlyPrice", Number(event.target.value))
@@ -473,6 +493,7 @@ export const PlanForm = ({
               <input
                 type="number"
                 min="0"
+                data-testid="plan-hotel-nights-input"
                 value={form.hotelNights ?? 0}
                 onChange={(event) => updateField("hotelNights", Number(event.target.value))}
                 className="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none transition focus:border-flight focus:ring-4 focus:ring-blue-100"
@@ -484,6 +505,7 @@ export const PlanForm = ({
               </span>
               <input
                 value={form.venueCommuteTime ?? ""}
+                data-testid="plan-venue-commute-input"
                 onChange={(event) => updateField("venueCommuteTime", event.target.value)}
                 placeholder="约 15 分钟"
                 className="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none transition focus:border-flight focus:ring-4 focus:ring-blue-100"

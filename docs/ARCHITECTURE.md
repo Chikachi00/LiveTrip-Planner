@@ -12,6 +12,7 @@ Key modules:
 - `src/lib/userPreferences.ts`: user preference defaults and persistence
 - `src/utils/merge.ts`: cloud pull conflict handling
 - `src/utils/storage.ts`: plan localStorage normalization
+- `src/utils/dataManagement.ts`: JSON backup schema, import validation, and sample data merge
 
 ## localStorage-First Design
 
@@ -26,6 +27,23 @@ Local keys:
 - `livetrip-planner:onboarding-dismissed`
 
 All read paths normalize missing fields, numeric strings, invalid dates, and old-version data shapes before rendering.
+
+## JSON Backup Schema
+
+v1.0 exports a versioned backup format:
+
+```json
+{
+  "schemaVersion": 1,
+  "appVersion": "1.0.0",
+  "exportedAt": "ISO datetime",
+  "tripPlans": [],
+  "customVenues": [],
+  "userPreferences": {}
+}
+```
+
+Legacy array backups and older object backups without `schemaVersion` are treated as schema 0. Unknown future schema versions are rejected with a clear import error instead of being silently imported.
 
 ## Pages Functions API
 
@@ -128,6 +146,13 @@ x-sync-token: token_xxxxxxxxxxxxxxxxxxxx
 - No realtime hotel or transport API.
 - No plaintext sync tokens stored in D1.
 - No Cloudflare or GitHub tokens in the repository.
+
+## Testing and CI
+
+- Vitest covers budget calculation, Worth Score, Smart Advice, merge behavior, and backup normalization.
+- Playwright covers first-run onboarding, trip creation/editing, compare sorting, custom venue management, preferences, and JSON backup flow.
+- GitHub Actions runs `npm ci`, `npm run build`, `npm run test:run`, installs Playwright Chromium, and runs `npm run test:e2e:ci`.
+- E2E tests start a local Vite server and do not call the production D1 database.
 
 ## Current Limits
 

@@ -1,14 +1,17 @@
 {
   "name": "livetrip-planner",
   "private": true,
-  "version": "0.9.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "test:e2e": "node scripts/run-playwright.mjs",
+    "test:e2e:ci": "node scripts/run-playwright.mjs --reporter=line",
+    "screenshots": "node scripts/run-playwright.mjs --config=playwright.screenshots.config.ts --project=chromium"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.0",
@@ -19,6 +22,7 @@
     "recharts": "^3.8.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.20",

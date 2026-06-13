@@ -3,7 +3,11 @@ import { ChangeEvent, useRef, useState } from "react";
 import type { Venue } from "../data/venues";
 import type { UserPreferences } from "../lib/userPreferences";
 import type { TripPlan } from "../types";
-import { createBackupJson, downloadJson } from "../utils/dataManagement";
+import {
+  BackupImportError,
+  createBackupJson,
+  downloadJson,
+} from "../utils/dataManagement";
 import { useToast } from "./ToastProvider";
 
 type ImportResult = {
@@ -67,9 +71,13 @@ export const DataManager = ({
           : "没有导入数据，请检查 JSON 结构或重复 id。",
       );
       showToast("JSON 导入完成。", "success");
-    } catch {
-      setMessage("导入失败：文件不是有效的 JSON 备份。");
-      showToast("JSON 格式不正确，请检查备份文件。", "error");
+    } catch (caught) {
+      const text =
+        caught instanceof BackupImportError
+          ? caught.message
+          : "导入失败：文件不是有效的 JSON 备份。";
+      setMessage(text);
+      showToast(text, "error");
     } finally {
       setIsBusy(false);
     }
@@ -112,6 +120,7 @@ export const DataManager = ({
           <button
             type="button"
             onClick={exportJson}
+            data-testid="backup-export-button"
             disabled={isBusy}
             className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-ink transition hover:border-flight/40 hover:text-flight disabled:cursor-not-allowed disabled:opacity-60"
           >
@@ -121,6 +130,7 @@ export const DataManager = ({
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
+            data-testid="backup-import-button"
             disabled={isBusy}
             className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-ink transition hover:border-flight/40 hover:text-flight disabled:cursor-not-allowed disabled:opacity-60"
           >
@@ -130,6 +140,7 @@ export const DataManager = ({
           <button
             type="button"
             onClick={loadSamples}
+            data-testid="load-samples-button"
             className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-mist px-4 text-sm font-semibold text-moss transition hover:bg-emerald-100"
           >
             <RotateCcw size={16} />
@@ -138,6 +149,7 @@ export const DataManager = ({
           <button
             type="button"
             onClick={clearAll}
+            data-testid="clear-all-button"
             className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-600 transition hover:bg-red-100"
           >
             <Trash2 size={16} />
@@ -147,6 +159,7 @@ export const DataManager = ({
             ref={inputRef}
             type="file"
             accept="application/json,.json"
+            data-testid="backup-import-input"
             className="hidden"
             onChange={importJson}
           />

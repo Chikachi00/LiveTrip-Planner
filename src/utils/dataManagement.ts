@@ -8,6 +8,25 @@ import {
 import type { TripPlan } from "../types";
 import { normalizePlan } from "./storage";
 
+export const BACKUP_SCHEMA_VERSION = 1;
+export const APP_VERSION = "1.0.0";
+
+export class BackupImportError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "BackupImportError";
+  }
+}
+
+type BackupFileV1 = {
+  schemaVersion: 1;
+  appVersion: string;
+  exportedAt: string;
+  tripPlans: TripPlan[];
+  customVenues: Venue[];
+  userPreferences: UserPreferences;
+};
+
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 };
@@ -25,7 +44,14 @@ const getNumber = (record: Record<string, unknown>, key: string, fallback = 0) =
 
 const getStringArray = (record: Record<string, unknown>, key: string) => {
   const value = record[key];
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
+};
+
+const clampScore = (value: unknown, fallback = 3) => {
+  const number = typeof value === "number" ? value : Number(value);
+  return Math.min(Math.max(Math.round(Number.isFinite(number) ? number : fallback), 1), 5);
 };
 
 const createId = () => crypto.randomUUID();
@@ -58,10 +84,10 @@ const parsePlanRecord = (
   return normalizePlan({
     id,
     title,
-    artist: getString(record, "artist", "未填写"),
+    artist: getString(record, "artist", "Not set"),
     date,
-    city: getString(record, "city", "未填写"),
-    venue: getString(record, "venue", "未填写"),
+    city: getString(record, "city", "Not set"),
+    venue: getString(record, "venue", "Not set"),
     venueId: getString(record, "venueId"),
     seatType: getString(record, "seatType"),
     departureCity: getString(record, "departureCity"),
@@ -130,10 +156,10 @@ const parseVenueRecord = (
     nearestStations: getStringArray(record, "nearestStations"),
     capacity: getNumber(record, "capacity", 0) || undefined,
     venueType: allowedTypes.includes(venueType) ? venueType : "other",
-    accessScore: getNumber(record, "accessScore", 3),
-    crowdRiskScore: getNumber(record, "crowdRiskScore", 3),
-    hotelDifficultyScore: getNumber(record, "hotelDifficultyScore", 3),
-    dayTripDifficultyScore: getNumber(record, "dayTripDifficultyScore", 3),
+    accessScore: clampScore(record.accessScore),
+    crowdRiskScore: clampScore(record.crowdRiskScore),
+    hotelDifficultyScore: clampScore(record.hotelDifficultyScore),
+    dayTripDifficultyScore: clampScore(record.dayTripDifficultyScore),
     recommendedHotelAreas: getStringArray(record, "recommendedHotelAreas"),
     avoidHotelAreas: getStringArray(record, "avoidHotelAreas"),
     arrivalAdvice: getString(record, "arrivalAdvice"),
@@ -141,27 +167,54 @@ const parseVenueRecord = (
     hotelAdvice: getString(record, "hotelAdvice"),
     transportAdvice: getString(record, "transportAdvice"),
     notes: getString(record, "notes"),
+    createdAt: getString(record, "createdAt", new Date().toISOString()),
+    updatedAt: getString(record, "updatedAt", new Date().toISOString()),
   });
 };
+
+const getSchemaVersion = (parsed: unknown) => {
+  if (Array.isArray(parsed)) {
+    return 0;
+  }
+
+  if (!isRecord(parsed) || parsed.schemaVersion === undefined) {
+    return 0;
+  }
+
+  const version = Number(parsed.schemaVersion);
+
+  if (!Number.isInteger(version) || version < 0) {
+    throw new BackupImportError("Backup schemaVersion is invalid.");
+  }
+
+  if (version > BACKUP_SCHEMA_VERSION) {
+    throw new BackupImportError(
+      `Backup schemaVersion ${version} is newer than this app supports.`,
+    );
+  }
+
+  return version;
+};
+
+export const createBackupObject = (
+  plans: TripPlan[],
+  customVenues: Venue[] = [],
+  userPreferences: UserPreferences,
+): BackupFileV1 => ({
+  schemaVersion: BACKUP_SCHEMA_VERSION,
+  appVersion: APP_VERSION,
+  exportedAt: new Date().toISOString(),
+  tripPlans: plans,
+  customVenues,
+  userPreferences,
+});
 
 export const createBackupJson = (
   plans: TripPlan[],
   customVenues: Venue[] = [],
-  userPreferences?: UserPreferences,
+  userPreferences: UserPreferences,
 ) => {
-  return JSON.stringify(
-    {
-      app: "LiveTrip Planner",
-      version: "0.8",
-      exportedAt: new Date().toISOString(),
-      tripPlans: plans,
-      customVenues,
-      userPreferences,
-      plans, // Backward-friendly alias for older imports.
-    },
-    null,
-    2,
-  );
+  return JSON.stringify(createBackupObject(plans, customVenues, userPreferences), null, 2);
 };
 
 export const downloadJson = (content: string, fileName: string) => {
@@ -179,7 +232,15 @@ export const importPlansFromJson = (
   existingPlans: TripPlan[],
   existingCustomVenues: Venue[] = [],
 ) => {
-  const parsed = JSON.parse(raw) as unknown;
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(raw) as unknown;
+  } catch {
+    throw new BackupImportError("Backup file is not valid JSON.");
+  }
+
+  const schemaVersion = getSchemaVersion(parsed);
   const planCandidates = Array.isArray(parsed)
     ? parsed
     : isRecord(parsed) && Array.isArray(parsed.tripPlans)
@@ -207,6 +268,7 @@ export const importPlansFromJson = (
     .filter((venue): venue is Venue => Boolean(venue));
 
   return {
+    schemaVersion,
     plans: [...importedPlans, ...existingPlans],
     customVenues: [...importedCustomVenues, ...existingCustomVenues],
     userPreferences: userPreferencesCandidate,

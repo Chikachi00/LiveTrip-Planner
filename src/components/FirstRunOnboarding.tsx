@@ -11,7 +11,10 @@ export const FirstRunOnboarding = ({
   onDismiss,
 }: FirstRunOnboardingProps) => {
   return (
-    <section className="rounded-lg border border-blue-200 bg-blue-50 p-5 shadow-soft">
+    <section
+      data-testid="first-run-onboarding"
+      className="rounded-lg border border-blue-200 bg-blue-50 p-5 shadow-soft"
+    >
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="flex items-center gap-2 text-sm font-semibold text-flight">
@@ -28,6 +31,7 @@ export const FirstRunOnboarding = ({
         <button
           type="button"
           onClick={onDismiss}
+          data-testid="onboarding-close-button"
           className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-blue-200 bg-white text-slate-500 hover:text-ink"
           aria-label="关闭首次使用引导"
         >
@@ -69,6 +73,7 @@ export const FirstRunOnboarding = ({
         <button
           type="button"
           onClick={onLoadSamples}
+          data-testid="onboarding-load-samples-button"
           className="inline-flex h-10 items-center justify-center rounded-lg border border-blue-200 bg-white px-4 text-sm font-semibold text-flight"
         >
           加载示例数据
@@ -82,6 +87,7 @@ export const FirstRunOnboarding = ({
         <button
           type="button"
           onClick={onDismiss}
+          data-testid="onboarding-dismiss-button"
           className="inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-semibold text-slate-600 hover:bg-white/70"
         >
           稍后再说

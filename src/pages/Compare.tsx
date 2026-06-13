@@ -114,7 +114,7 @@ export const Compare = ({
 
   if (plans.length < 2) {
     return (
-      <div className="space-y-6">
+      <div data-testid="compare-page" className="space-y-6">
         <div>
           <p className="flex items-center gap-2 text-sm font-medium text-flight">
             <GitCompare size={16} />
@@ -142,7 +142,7 @@ export const Compare = ({
   }
 
   return (
-    <div className="space-y-6">
+    <div data-testid="compare-page" className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="flex items-center gap-2 text-sm font-medium text-flight">
@@ -173,6 +173,7 @@ export const Compare = ({
             <ArrowDownAZ size={16} />
             <select
               value={sortKey}
+              data-testid="compare-sort-select"
               onChange={(event) => setSortKey(event.target.value as SortKey)}
               className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-flight focus:ring-4 focus:ring-blue-100"
             >
@@ -192,6 +193,7 @@ export const Compare = ({
             return (
               <label
                 key={plan.id}
+                data-testid="compare-plan-option"
                 className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 p-4 transition hover:border-flight/50"
               >
                 <input

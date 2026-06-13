@@ -19,6 +19,7 @@ export const PlanCard = ({ plan, customVenues = [] }: PlanCardProps) => {
   return (
     <Link
       to={`/plans/${plan.id}`}
+      data-testid="plan-card"
       className="group block rounded-lg border border-slate-200 bg-white p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-flight/40"
     >
       <div className="flex items-start justify-between gap-4">

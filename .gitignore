@@ -17,3 +17,5 @@ tailwind.config.d.ts
 tailwind.config.js
 vite.config.d.ts
 vite.config.js
+playwright-report
+test-results

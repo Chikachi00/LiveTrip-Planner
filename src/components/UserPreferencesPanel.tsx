@@ -73,7 +73,10 @@ export const UserPreferencesPanel = ({
   };
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-soft">
+    <section
+      data-testid="user-preferences-panel"
+      className="rounded-lg border border-slate-200 bg-white p-5 shadow-soft"
+    >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p className="flex items-center gap-2 text-sm font-medium text-flight">
@@ -102,6 +105,7 @@ export const UserPreferencesPanel = ({
           <input
             value={draft.homeCity ?? ""}
             onChange={(event) => update("homeCity", event.target.value)}
+            data-testid="pref-home-city-input"
             placeholder="例如：上海"
             className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-flight focus:ring-4 focus:ring-blue-100"
           />
@@ -139,6 +143,7 @@ export const UserPreferencesPanel = ({
               type="number"
               min="0"
               value={Number(draft[key as keyof UserPreferences] ?? 0)}
+              data-testid={`pref-${key}-input`}
               onChange={(event) =>
                 update(
                   key as keyof UserPreferences,
@@ -231,8 +236,9 @@ export const UserPreferencesPanel = ({
 
         <div className="md:col-span-2">
           <button
-          type="submit"
+            type="submit"
             disabled={isSaving}
+            data-testid="pref-save-button"
             className="inline-flex h-10 items-center justify-center rounded-lg bg-ink px-4 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSaving ? "保存中..." : "保存用户偏好"}

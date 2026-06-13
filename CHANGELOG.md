@@ -2,6 +2,33 @@
 
 All notable changes to LiveTrip Planner are documented here.
 
+## [1.0.0]
+
+### Added
+
+- Versioned JSON backup schema with `schemaVersion`, `appVersion`, and `exportedAt`.
+- Playwright E2E coverage for onboarding, trip planning, comparison, venue management, preferences, and backup flows.
+- GitHub Actions CI for build, unit tests, and E2E tests.
+- Real screenshot generation script for release documentation.
+- `SECURITY.md`, `PRIVACY.md`, and v1.0 release notes.
+- Settings About section with version, demo, repository, privacy, and security links.
+
+### Changed
+
+- Updated package version to `1.0.0`.
+- First-run behavior now starts with an empty local plan list instead of silently loading sample data.
+- README repositioned as a v1.0 portfolio-ready project page.
+
+### Fixed
+
+- Restored valid UTF-8 metadata in `index.html` so Vite production builds work reliably on Windows paths.
+- Backup import now rejects unsupported future schemas instead of silently importing unknown formats.
+
+### Security
+
+- Added in-app Cloud Sync token handling notes.
+- Documented Sync Token safety, localStorage storage, token hash storage, and recovery limitations.
+
 ## v0.9.0
 
 ### Added

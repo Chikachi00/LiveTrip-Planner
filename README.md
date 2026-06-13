@@ -1,104 +1,100 @@
 # LiveTrip Planner
 
+![CI](https://github.com/Chikachi00/LiveTrip-Planner/actions/workflows/ci.yml/badge.svg)
+
+LiveTrip Planner 是一个本地优先的演出远征规划器：把演唱会 / Live / 展会联动的预算、交通、住宿、场馆风险、城市建议和个人偏好整理成可比较、可导出、可手动云同步的决策工具。
+
+Live Demo: https://livetrip-planner.pages.dev  
+Tech Stack: React, TypeScript, Vite, Tailwind CSS, Cloudflare Pages Functions, Cloudflare D1, Vitest, Playwright
+
 ## 中文
-
-### 项目简介
-
-LiveTrip Planner 是一个面向演唱会、Live、展会联动和跨城远征的轻量 full-stack 规划器。它把“这场到底值不值得去？”拆成计划、预算、场馆、城市、个人偏好、值得去指数、智能建议、导出备份和手动云端同步。
-
-### 在线体验
-
-Live Demo: https://livetrip-planner.pages.dev
 
 ### 项目解决的问题
 
-演出远征通常同时包含票务、交通、住宿、餐饮、周边预算、座位体验、体力恢复、散场压力和后悔风险。普通备忘录很难比较多个场次，也很难解释“为什么值得去”。LiveTrip Planner 通过结构化数据、规则评分和本地优先同步，把冲动决策变成可复盘的规划流程。
+演出远征决策通常不只是“想不想去”，还包括票价、手续费、交通、酒店、餐饮、周边、座位体验、疲劳、散场、住宿区域和后悔风险。LiveTrip Planner 将这些信息结构化，生成 Worth Score 和 Smart Advice，帮助用户更理性地比较多个计划。
 
-### 核心功能
+### v1.0 功能概览
 
-- Trip Plans：创建、编辑、删除演出远征计划
-- Worth Score：0-100 值得去指数和 Score Breakdown
-- Smart Advice Engine：规则驱动的预算、交通、住宿、票务、场馆、城市和偏好建议
-- Venue Library：内置场馆库 + 用户自定义场馆
-- City Guide：城市住宿区域和夜间返程建议
-- User Preferences：常驻城市、默认预算、地图偏好、预算/疲劳/安静敏感度
-- Cloud Sync：匿名 Sync Space 手动同步计划、自定义场馆和用户偏好
-- Export：Markdown 行程导出、JSON 备份与导入
-- Compare：多计划排序比较
-- v0.9 Polish：首次使用引导、Toast 反馈、Error Boundary、未保存提醒、路由级代码拆分和 Vitest 核心测试
+- Trip Plans：创建、编辑、删除和查看演出远征计划。
+- Worth Score：0-100 值得去指数和评分拆解。
+- Smart Advice Engine：规则驱动的预算、交通、住宿、票务、场馆、城市和偏好建议。
+- Venue Library：内置场馆库、自定义场馆和场馆风险评分。
+- City Guide：静态城市住宿区域、夜间返程和远征提示。
+- User Preferences：常驻城市、默认预算、地图偏好和风险敏感度。
+- Cloud Sync：匿名 Sync Space，手动同步 Trip Plans、自定义场馆和用户偏好。
+- Export：Markdown 行程导出和 schema v1 JSON 备份。
+- Compare：多计划排序比较。
+- Product Polish：首次引导、Toast、Error Boundary、未保存修改保护、路由级代码拆分。
+- Quality：Vitest 单元测试、Playwright E2E、GitHub Actions CI。
 
 ### 产品工作流程
 
-1. 在 Dashboard 查看所有演出远征计划。
-2. 新建计划，填写演出、预算、交通、住宿、座位和偏好评分。
-3. 查看详情页中的预算图表、值得去指数、智能建议、时间线、场馆提示和城市建议。
-4. 在 Compare 页面横向比较多个计划。
-5. 在 Venues 页面维护自定义场馆知识库。
-6. 在 Settings 页面配置用户偏好、导入导出 JSON、创建 Sync Space 并手动上传或拉取云端数据。
+1. 在 Dashboard 查看所有计划或加载示例数据。
+2. 创建计划，填写演出、预算、交通、住宿、座位和偏好评分。
+3. 在详情页查看预算图表、Worth Score、Smart Advice、时间线、场馆提示和城市建议。
+4. 在 Compare 横向比较多个计划。
+5. 在 Venues 维护个人自定义场馆知识库。
+6. 在 Settings 配置用户偏好、JSON 备份、Cloud Sync 和隐私安全信息。
+
+### 页面截图
+
+![Dashboard](docs/screenshots/dashboard.png)
+![Plan Detail](docs/screenshots/plan-detail.png)
+![Compare](docs/screenshots/compare.png)
+![Venues](docs/screenshots/venues.png)
+![Settings](docs/screenshots/settings.png)
+![Mobile](docs/screenshots/mobile.png)
 
 ### 技术架构
 
 - Frontend: React + TypeScript + Vite
 - Styling: Tailwind CSS
-- Routing: React Router + `React.lazy` route splitting
+- Routing: React Router + `React.lazy`
 - Charts: Recharts，按详情页异步加载
-- Persistence: localStorage 本地优先
-- Backend: Cloudflare Pages Functions
+- Storage: localStorage 本地优先
+- API: Cloudflare Pages Functions
 - Database: Cloudflare D1
-- Testing: Vitest
+- Testing: Vitest + Playwright
+- CI: GitHub Actions, Node.js 22
 
-### 数据流说明
+### 数据流与 Cloud Sync
 
-本地数据始终优先写入 localStorage：
+本地数据优先写入浏览器 `localStorage`：
 
 - `livetrip-planner:plans`
 - `livetrip-planner:custom-venues`
 - `livetrip-planner:user-preferences`
 - `livetrip-planner:sync-credentials`
 
-JSON 备份包含：
-
-- `tripPlans`
-- `customVenues`
-- `userPreferences`
-
-导入时会校验和规范化旧数据，避免坏 JSON、缺失字段、字符串数字、无效评分和重复 id 导致页面崩溃。
-
-### Cloud Sync 架构
-
-Cloud Sync 使用匿名 Sync Space，不做注册、登录、OAuth 或邮箱验证。
+Cloud Sync 使用匿名 Sync Space，不做注册、登录、OAuth 或邮箱验证：
 
 1. `POST /api/sync-spaces` 创建 `syncSpaceId` 和一次性 `syncToken`。
 2. 服务端只保存 `syncToken` 的 SHA-256 hash。
 3. `POST /api/sync/push` 手动上传 plans、customVenues、preferences。
 4. `GET /api/sync/pull` 手动拉取云端数据。
-5. 前端按 `updatedAt` 合并冲突；无法判断时保留本地版本。
+5. 前端按 `updatedAt` 合并冲突；无法判断时优先保留本地版本。
 
-### 关键设计决策
+D1 binding name: `DB`  
+D1 database name: `live-trip-planner-db`
 
-- 本地优先：没有云端配置时仍完整可用。
-- 手动同步：避免静默覆盖和复杂实时冲突。
-- 匿名 Sync Space：降低使用门槛，不保存身份数据。
-- 不接地图 API：只生成外部搜索链接，避免 API Key、配额和隐私成本。
-- 不接 AI API：Smart Advice Engine 以可解释规则为核心。
-- 路由级拆包：降低首屏 bundle，Recharts 不进入主入口。
-- Error Boundary：页面异常不会白屏。
-- Toast 反馈：统一成功、错误、警告和信息提示。
+### JSON 备份格式
 
-### 页面截图
+v1.0 正式定义备份格式：
 
-截图待补充。当前仅预留目录，不引用不存在的图片以避免破损展示。
+```json
+{
+  "schemaVersion": 1,
+  "appVersion": "1.0.0",
+  "exportedAt": "ISO datetime",
+  "tripPlans": [],
+  "customVenues": [],
+  "userPreferences": {}
+}
+```
 
-预留路径：
+旧版没有 `schemaVersion` 的备份会按 schema 0 兼容导入；未知更高版本会被拒绝并提示用户。
 
-- `docs/screenshots/dashboard.png`
-- `docs/screenshots/plan-detail.png`
-- `docs/screenshots/compare.png`
-- `docs/screenshots/venues.png`
-- `docs/screenshots/settings.png`
-- `docs/screenshots/mobile.png`
-
-### 本地运行
+### 快速开始
 
 ```bash
 npm install
@@ -115,167 +111,131 @@ npm run build
 
 ```bash
 npm run test:run
+npm run test:e2e:ci
+```
+
+生成截图：
+
+```bash
+npm run screenshots
 ```
 
 ### Cloudflare 部署
 
+Cloudflare Pages:
+
 - Build command: `npm run build`
 - Build output directory: `dist`
-- Pages Functions path: `functions/api/[[route]].ts`
+- Pages Functions: `functions/api/[[route]].ts`
 - D1 binding name: `DB`
-- D1 database name: `live-trip-planner-db`
 
-`wrangler.toml`:
-
-```toml
-pages_build_output_dir = "dist"
-
-[[d1_databases]]
-binding = "DB"
-database_name = "live-trip-planner-db"
-```
-
-### D1 Migration
+D1 migrations:
 
 ```bash
 wrangler d1 migrations apply live-trip-planner-db
 ```
 
-当前 migration：
+### 隐私与安全设计
 
-- `migrations/0001_init.sql`: `sync_spaces`, `cloud_trip_plans`
-- `migrations/0002_add_custom_venues_and_preferences.sql`: `cloud_custom_venues`, `cloud_user_preferences`
+- 不需要账号、姓名或邮箱。
+- 默认数据只保存在浏览器 localStorage。
+- 用户点击上传时才会写入 Cloudflare D1。
+- Sync Token 明文只保存在当前浏览器，服务端只保存 hash。
+- Sync Token 丢失无法恢复，泄露后应创建新的 Sync Space。
+- 外部地图按钮只生成搜索链接，不使用地图 API Key。
 
-### 测试方式
+更多见 [PRIVACY.md](PRIVACY.md) 和 [SECURITY.md](SECURITY.md)。
 
-Vitest 覆盖核心纯逻辑：
+### 已知限制
 
-- 预算计算
-- 值得去指数
-- Smart Advice Engine
-- 云端拉取合并逻辑
-- JSON 导入与数据规范化
-
-测试不依赖真实 Cloudflare D1，也不会调用线上 API。
+- 没有完整账号系统。
+- Sync Token 丢失无法恢复。
+- 云同步是手动同步，不是实时同步。
+- 冲突合并依赖 `updatedAt`。
+- 场馆库和 City Guide 是静态数据。
+- 不提供实时交通、酒店、票务或汇率信息。
+- 多币种只是显示偏好，没有实时汇率转换。
+- Smart Advice 是规则系统，不是专业旅行建议。
 
 ### 项目结构
 
 ```text
-functions/api/[[route]].ts       # Pages Functions API
-migrations/                      # D1 schema migrations
-public/                          # favicon, OG image, Pages routing
-src/components/                  # UI components
-src/data/                        # venues, city guides, sample plans
-src/hooks/                       # document title and dirty-warning hooks
-src/lib/                         # sync, advice, preferences, custom venues
-src/pages/                       # lazy-loaded route pages
-src/utils/                       # calculations, storage, merge, markdown
-src/__tests__/                   # Vitest tests
-docs/ARCHITECTURE.md             # architecture notes
-CHANGELOG.md                     # version history
+src/
+  components/        UI components
+  data/              built-in venues and city guides
+  lib/               advice, sync, preferences, custom venues
+  pages/             route-level pages
+  utils/             storage, backup, markdown, calculations
+  __tests__/         Vitest unit tests
+functions/api/       Cloudflare Pages Functions API
+migrations/          Cloudflare D1 migrations
+e2e/                 Playwright E2E and screenshot tests
+docs/                architecture, screenshots, release notes
 ```
 
-### 版本历程
+### 文档
 
-详见 [CHANGELOG.md](CHANGELOG.md)。
-
-### 后续计划
-
-- 自定义 City Guide 同步
-- 云端软删除与恢复
-- 多币种手动汇率
-- PWA 离线体验
-- AI summary layer，仅用于总结规则建议
+- [Architecture](docs/ARCHITECTURE.md)
+- [Release Notes v1.0](docs/RELEASE_NOTES_1.0.md)
+- [Changelog](CHANGELOG.md)
+- [Privacy](PRIVACY.md)
+- [Security](SECURITY.md)
 
 ## English
 
-### Overview
-
-LiveTrip Planner is a lightweight full-stack planner for concert and event travel. It structures trip plans, budgets, venues, city guides, preferences, worth scoring, advice, exports, backups, and manual cloud sync.
+LiveTrip Planner is a local-first concert travel planner for deciding whether an out-of-town live event is worth the budget, travel fatigue, venue risk, and accommodation complexity.
 
 Live Demo: https://livetrip-planner.pages.dev
 
-### Problem
+### Highlights
 
-Concert travel decisions involve tickets, transport, hotels, food, merch, seats, fatigue, crowd risk, and regret risk. A note app is not enough for comparing options or explaining why a trip is worth it. LiveTrip Planner turns those factors into a reusable decision workflow.
-
-### Core Features
-
-- Trip plan CRUD
-- 0-100 worth score with explainable breakdown
-- Rule-driven Smart Advice Engine
-- Built-in and custom venue library
-- City Guide templates
-- User Preferences
-- Anonymous Sync Space cloud sync
-- Markdown export and JSON backup
-- Multi-plan comparison
-- v0.9 polish: onboarding, toasts, error boundary, unsaved-change guard, route splitting, and Vitest tests
-
-### Workflow
-
-1. Review plans on Dashboard.
-2. Create a trip plan with event, budget, transport, hotel, seat, and rating data.
-3. Open details for budget charts, score, advice, timeline, venue insight, and city guide.
-4. Compare multiple plans.
-5. Manage custom venues.
-6. Configure preferences, backup JSON, and manually sync through Settings.
+- Create, edit, delete, compare, and export trip plans.
+- Calculate total budget and a 0-100 Worth Score.
+- Rule-based Smart Advice Engine for budget, travel, hotel, ticket, venue, city, and preference signals.
+- Built-in venue database plus user-managed custom venues.
+- Static City Guide recommendations.
+- Anonymous Sync Space cloud sync on Cloudflare D1.
+- Versioned JSON backup format.
+- First-run onboarding, toast feedback, error boundary, and unsaved-change protection.
+- Vitest unit tests, Playwright E2E tests, and GitHub Actions CI.
 
 ### Architecture
 
 - React + TypeScript + Vite
 - Tailwind CSS
-- React Router with `React.lazy`
-- Recharts loaded through detail-page chunks
-- localStorage-first persistence
-- Cloudflare Pages Functions
-- Cloudflare D1
-- Vitest
+- React Router with route-level lazy loading
+- Recharts loaded on the detail route
+- localStorage as the primary data store
+- Cloudflare Pages Functions for `/api/*`
+- Cloudflare D1 with binding name `DB`
 
-### Data Flow
+### Quick Start
 
-The app writes first to localStorage. Cloud Sync is manual. Pull conflicts are merged by `updatedAt`; when uncertain, local data wins. JSON imports are normalized for older versions and malformed fields.
+```bash
+npm install
+npm run dev
+npm run build
+npm run test:run
+npm run test:e2e:ci
+```
 
-### Cloud Sync
-
-Sync Spaces avoid full accounts:
-
-- `POST /api/sync-spaces`
-- `POST /api/sync/push`
-- `GET /api/sync/pull`
-- Auth headers: `x-sync-space-id`, `x-sync-token`
-- Tokens are hashed server-side with SHA-256
-
-### Deployment
+### Cloudflare Pages
 
 - Build command: `npm run build`
 - Build output directory: `dist`
 - D1 binding name: `DB`
 - D1 database name: `live-trip-planner-db`
 
-Apply migrations:
+### Privacy and Security
 
-```bash
-wrangler d1 migrations apply live-trip-planner-db
-```
+No account, email, OAuth, AI API, map API, or real-time hotel/traffic API is required. Cloud Sync is manual. Sync Tokens are stored in the browser and only token hashes are stored server-side.
 
-### Tests
+### Known Limitations
 
-```bash
-npm run test:run
-```
-
-Tests cover budget logic, worth scoring, advice rules, cloud merge behavior, and JSON normalization. They do not use real D1 or external APIs.
-
-### Documentation
-
-- [Architecture](docs/ARCHITECTURE.md)
-- [Changelog](CHANGELOG.md)
-
-### Roadmap
-
-- Custom City Guide sync
-- Cloud soft-delete recovery
-- Manual multi-currency settings
-- PWA offline support
-- AI summary layer on top of the rule engine
+- No full account system.
+- Lost Sync Tokens cannot be recovered.
+- Sync is manual.
+- Conflict resolution is based on `updatedAt`.
+- Venue and City Guide data is static.
+- No real-time traffic, hotel, ticketing, or exchange-rate data.
+- Smart Advice is rule-based and not professional travel advice.

@@ -4,7 +4,13 @@ import { generateTripAdvice } from "../lib/adviceEngine";
 import type { UserPreferences } from "../lib/userPreferences";
 import type { TripPlan } from "../types";
 import { calculateTotalCost, calculateWorthScore } from "../utils/calculations";
-import { importPlansFromJson } from "../utils/dataManagement";
+import {
+  APP_VERSION,
+  BACKUP_SCHEMA_VERSION,
+  BackupImportError,
+  createBackupJson,
+  importPlansFromJson,
+} from "../utils/dataManagement";
 import {
   mergePlansByUpdatedAt,
   mergePreferencesByUpdatedAt,
@@ -251,9 +257,35 @@ describe("merge logic", () => {
 });
 
 describe("JSON import and normalization", () => {
+  it("exports the v1 backup schema", () => {
+    const backup = JSON.parse(
+      createBackupJson([basePlan()], [venue()], preferences()),
+    ) as Record<string, unknown>;
+
+    expect(backup.schemaVersion).toBe(BACKUP_SCHEMA_VERSION);
+    expect(backup.appVersion).toBe(APP_VERSION);
+    expect(Array.isArray(backup.tripPlans)).toBe(true);
+    expect(Array.isArray(backup.customVenues)).toBe(true);
+    expect(backup.userPreferences).toBeDefined();
+    expect(backup.plans).toBeUndefined();
+  });
+
   it("imports old array backups", () => {
     const result = importPlansFromJson(JSON.stringify([basePlan()]), [], []);
+    expect(result.schemaVersion).toBe(0);
     expect(result.importedCount).toBe(1);
+  });
+
+  it("imports v1 backups", () => {
+    const result = importPlansFromJson(
+      createBackupJson([basePlan()], [venue()], preferences()),
+      [],
+      [],
+    );
+    expect(result.schemaVersion).toBe(1);
+    expect(result.importedCount).toBe(1);
+    expect(result.importedCustomVenueCount).toBe(1);
+    expect(result.importedUserPreferences).toBe(true);
   });
 
   it("fills missing fields", () => {
@@ -284,6 +316,12 @@ describe("JSON import and normalization", () => {
   });
 
   it("throws on broken JSON", () => {
-    expect(() => importPlansFromJson("{broken", [], [])).toThrow();
+    expect(() => importPlansFromJson("{broken", [], [])).toThrow(BackupImportError);
+  });
+
+  it("rejects unknown newer backup schemas", () => {
+    expect(() =>
+      importPlansFromJson(JSON.stringify({ schemaVersion: 999, tripPlans: [] }), [], []),
+    ).toThrow(BackupImportError);
   });
 });

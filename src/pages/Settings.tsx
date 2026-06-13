@@ -65,7 +65,7 @@ export const Settings = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div data-testid="settings-page" className="space-y-6">
       <div>
         <p className="flex items-center gap-2 text-sm font-medium text-flight">
           <SettingsIcon size={16} />
@@ -105,6 +105,48 @@ export const Settings = ({
         onLoadSamples={onLoadSamples}
         onClearAll={onClearAll}
       />
+
+      <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-soft">
+        <p className="text-sm font-medium text-flight">About</p>
+        <h2 className="mt-2 text-xl font-semibold">LiveTrip Planner v1.0.0</h2>
+        <div className="mt-4 grid gap-3 text-sm text-slate-600 sm:grid-cols-2 lg:grid-cols-4">
+          <a
+            href="https://livetrip-planner.pages.dev"
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-lg border border-slate-200 px-3 py-2 font-medium hover:border-flight/40 hover:text-flight"
+          >
+            Live Demo (new tab)
+          </a>
+          <a
+            href="https://github.com/Chikachi00/LiveTrip-Planner"
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-lg border border-slate-200 px-3 py-2 font-medium hover:border-flight/40 hover:text-flight"
+          >
+            GitHub Repository
+          </a>
+          <a
+            href="https://github.com/Chikachi00/LiveTrip-Planner/blob/main/PRIVACY.md"
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-lg border border-slate-200 px-3 py-2 font-medium hover:border-flight/40 hover:text-flight"
+          >
+            Privacy
+          </a>
+          <a
+            href="https://github.com/Chikachi00/LiveTrip-Planner/blob/main/SECURITY.md"
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-lg border border-slate-200 px-3 py-2 font-medium hover:border-flight/40 hover:text-flight"
+          >
+            Security
+          </a>
+        </div>
+        <p className="mt-3 text-xs leading-5 text-slate-500">
+          License: not specified in this repository.
+        </p>
+      </section>
     </div>
   );
 };

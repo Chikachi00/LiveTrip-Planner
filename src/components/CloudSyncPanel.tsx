@@ -1,4 +1,4 @@
-import { Cloud, Link2, RefreshCw, Send, Unplug } from "lucide-react";
+import { Cloud, Copy, Link2, RefreshCw, Send, Unplug } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 import type { Venue } from "../data/venues";
 import {
@@ -178,6 +178,17 @@ export const CloudSyncPanel = ({
     showToast("已断开云端同步。", "info");
   };
 
+  const copyOneTimeToken = async () => {
+    if (!oneTimeToken) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(
+      `Sync Space ID: ${syncSpaceId}\nSync Token: ${oneTimeToken}`,
+    );
+    showToast("Sync Token 已复制，请保存到私密位置。", "success");
+  };
+
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-soft">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -222,6 +233,7 @@ export const CloudSyncPanel = ({
             type="button"
             disabled={isBusy}
             onClick={handleCreateSpace}
+            data-testid="create-sync-space-button"
             className="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-ink px-4 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Cloud size={16} />
@@ -233,6 +245,14 @@ export const CloudSyncPanel = ({
               <p className="font-semibold">请立即保存 Sync Token</p>
               <p className="mt-2 break-all">Sync Space ID: {syncSpaceId}</p>
               <p className="mt-1 break-all">Sync Token: {oneTimeToken}</p>
+              <button
+                type="button"
+                onClick={copyOneTimeToken}
+                className="mt-3 inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-white px-3 text-xs font-semibold text-amber-800 transition hover:bg-amber-100"
+              >
+                <Copy size={14} />
+                Copy Token
+              </button>
             </div>
           ) : null}
         </div>
@@ -247,6 +267,7 @@ export const CloudSyncPanel = ({
               <input
                 value={syncSpaceId}
                 onChange={(event) => setSyncSpaceId(event.target.value)}
+                data-testid="sync-space-id-input"
                 placeholder="space_xxxxxxxx"
                 className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none transition focus:border-flight focus:ring-4 focus:ring-blue-100"
               />
@@ -258,6 +279,7 @@ export const CloudSyncPanel = ({
               <input
                 value={syncToken}
                 onChange={(event) => setSyncToken(event.target.value)}
+                data-testid="sync-token-input"
                 placeholder="token_xxxxxxxxxxxxxxxxxxxx"
                 className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none transition focus:border-flight focus:ring-4 focus:ring-blue-100"
               />
@@ -265,6 +287,7 @@ export const CloudSyncPanel = ({
           </div>
           <button
             type="submit"
+            data-testid="sync-connect-button"
             className="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-ink transition hover:border-flight/40 hover:text-flight"
           >
             <Link2 size={16} />
@@ -273,11 +296,42 @@ export const CloudSyncPanel = ({
         </form>
       </div>
 
+      <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+        <p className="font-semibold">隐私与安全提示</p>
+        <ul className="mt-2 list-disc space-y-1 pl-5">
+          <li>Sync Token 相当于访问凭据，请勿公开。</li>
+          <li>Token 保存在当前浏览器中，清除浏览器数据前请先保存。</li>
+          <li>云端同步为手动触发，不会自动上传你的本地数据。</li>
+        </ul>
+        <p className="mt-2">
+          详细说明见 GitHub 上的{" "}
+          <a
+            href="https://github.com/Chikachi00/LiveTrip-Planner/blob/main/PRIVACY.md"
+            target="_blank"
+            rel="noreferrer"
+            className="font-semibold underline"
+          >
+            PRIVACY.md
+          </a>{" "}
+          和{" "}
+          <a
+            href="https://github.com/Chikachi00/LiveTrip-Planner/blob/main/SECURITY.md"
+            target="_blank"
+            rel="noreferrer"
+            className="font-semibold underline"
+          >
+            SECURITY.md
+          </a>{" "}
+          （新标签页打开）。
+        </p>
+      </div>
+
       <div className="mt-5 flex flex-wrap gap-2">
         <button
           type="button"
           disabled={!credentials || isBusy}
           onClick={handlePush}
+          data-testid="sync-push-button"
           className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-flight px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Send size={16} />
@@ -287,6 +341,7 @@ export const CloudSyncPanel = ({
           type="button"
           disabled={!credentials || isBusy}
           onClick={handlePull}
+          data-testid="sync-pull-button"
           className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-ink transition hover:border-flight/40 hover:text-flight disabled:cursor-not-allowed disabled:opacity-60"
         >
           <RefreshCw size={16} />
@@ -296,6 +351,7 @@ export const CloudSyncPanel = ({
           type="button"
           disabled={!credentials || isBusy}
           onClick={handleDisconnect}
+          data-testid="sync-disconnect-button"
           className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Unplug size={16} />

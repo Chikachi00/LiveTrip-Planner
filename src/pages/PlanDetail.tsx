@@ -85,7 +85,7 @@ export const PlanDetail = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div data-testid="plan-detail-page" className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <Link
@@ -130,6 +130,7 @@ export const PlanDetail = ({
         <div className="flex flex-wrap gap-2">
           <Link
             to={`/plans/${plan.id}/edit`}
+            data-testid="plan-edit-link"
             className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-ink transition hover:border-flight/40 hover:text-flight"
           >
             <Edit3 size={16} />
@@ -138,6 +139,7 @@ export const PlanDetail = ({
           <button
             type="button"
             onClick={handleDelete}
+            data-testid="plan-delete-button"
             className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-4 text-sm font-semibold text-red-600 transition hover:bg-red-50"
           >
             <Trash2 size={16} />
